@@ -1,0 +1,15 @@
+test/build/R2/file.properties
+test/build/R2/package1/Class1.class
+test/build/R2/package1/imagedir1/sawfish-logo.png
+test/build/R2/package1/imagedir1/sawfish-appearance.png
+test/build/R2/package1/imagedir1/sawfish-edgeflip.png
+test/build/R2/package1/imagedir1/sawfish-focus.png
+test/build/R2/package1/imagedir2/sawfish-misc.png
+test/build/R2/package1/imagedir2/sawfish-moveresize.png
+test/build/R2/package1/imagedir2/subimagedir/sawfish-tooltips.png
+test/build/R2/package1/imagedir2/subimagedir/sawfish-workspaces.png
+test/build/R2/package1/imagedir2/subimagedir/sawfish-shortcuts.png
+test/build/R2/package1/imagedir2/subimagedir/sawfish-placement.png
+test/build/R2/package1/imagedir2/sawfish-minmax.png
+test/build/R2/package1/imagedir2/sawfish-matched.png
+test/build/R2/META-INF/MANIFEST.MF

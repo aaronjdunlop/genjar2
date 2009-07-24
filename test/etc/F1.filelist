@@ -1,0 +1,11 @@
+test/build/F1/package1/Class1.class
+test/build/F1/file.properties
+test/build/F1/genjar.properties
+test/build/F1/package1/imagedir1/sawfish-appearance.png
+test/build/F1/package1/imagedir1/sawfish-edgeflip.png
+test/build/F1/package1/imagedir1/sawfish-focus.png
+test/build/F1/package1/imagedir1/sawfish-logo.png
+test/build/F1/package1/imagedir2/subimagedir/sawfish-placement.png
+test/build/F1/package1/imagedir2/subimagedir/sawfish-shortcuts.png
+test/build/F1/package1/imagedir2/subimagedir/sawfish-tooltips.png
+test/build/F1/package1/imagedir2/subimagedir/sawfish-workspaces.png

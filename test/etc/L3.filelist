@@ -1,0 +1,14 @@
+test/build/L3/net/sf/genjar/GenJarTest.class
+test/build/L3/package1/Class1.class
+test/build/L3/package1/Class2.class
+test/build/L3/package1/Class3.class
+test/build/L3/package2/Class4.class
+test/build/L3/package2/Class5.class
+test/build/L3/package3/Class6$Inner.class
+test/build/L3/package3/Class6.class
+test/build/L3/package3/Class7.class
+test/build/L3/profile/A.class
+test/build/L3/profile/Bar.class
+test/build/L3/profile/Foo.class
+test/build/L3/profile/Foo2.class
+test/build/L3/profile/Foo3.class

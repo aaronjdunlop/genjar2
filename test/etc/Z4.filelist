@@ -1,0 +1,15 @@
+test/build/Z4/net/sf/antcontrib/logic/Switch$Case.class
+test/build/Z4/net/sf/antcontrib/logic/IfTask.class
+test/build/Z4/net/sf/antcontrib/logic/ForEach.class
+test/build/Z4/net/sf/antcontrib/logic/Switch.class
+test/build/Z4/net/sf/antcontrib/logic/TryCatchTask.class
+test/build/Z4/net/sf/antcontrib/platform/OsFamily.class
+test/build/Z4/net/sf/antcontrib/property/PropertyCopy.class
+test/build/Z4/org/apache/tools/ant/taskdefs/Attrib.class
+test/build/Z4/org/apache/tools/ant/taskdefs/optional/genjar/GenJarTest.class
+test/build/Z4/package1/Class1.class
+test/build/Z4/package1/Class2.class
+test/build/Z4/package1/Class3.class
+test/build/Z4/package2/Class4.class
+test/build/Z4/taskdefs.properties
+test/build/Z4/typedefs.properties

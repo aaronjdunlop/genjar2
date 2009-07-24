@@ -1,0 +1,10 @@
+test/build/L1/net/sf/antcontrib/logic/Switch$Case.class
+test/build/L1/net/sf/antcontrib/logic/IfTask.class
+test/build/L1/net/sf/antcontrib/logic/ForEach.class
+test/build/L1/net/sf/antcontrib/logic/Switch.class
+test/build/L1/net/sf/antcontrib/logic/TryCatchTask.class
+test/build/L1/net/sf/antcontrib/platform/OsFamily.class
+test/build/L1/net/sf/antcontrib/property/PropertyCopy.class
+test/build/L1/org/apache/tools/ant/taskdefs/Attrib.class
+test/build/L1/typedefs.properties
+test/build/L1/taskdefs.properties

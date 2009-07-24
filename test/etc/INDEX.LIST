@@ -1,0 +1,9 @@
+JarIndex-Version: 1.0
+
+GenJar2Test-L2.jar
+package1
+package2
+net/sf/antcontrib/logic
+net/sf/antcontrib/platform
+net/sf/antcontrib/property
+org/apache/tools/ant/taskdefs

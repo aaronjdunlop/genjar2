@@ -1,0 +1,452 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+  <HEAD> <META HTTP-EQUIV="Content-Language" CONTENT="en-us">
+     <META NAME="VERSION" CONTENT="1.0">
+     <TITLE>GenJar</TITLE>	<STYLE TYPE="text/css">
+      body { background: white; }
+      h1,h2,h3 { background: #6699FF;
+              text-align: left;
+      }
+
+
+   .sect2 {
+          font-family: monospace;
+          font-size: 125%;
+       padding-left: 1em;
+       padding-bottom: 1em;
+       padding-top: 1em;
+   }
+    </STYLE>
+  </HEAD>
+  <BODY>
+     <H1>GenJar Manual</H1>
+     <P>by</P>
+     <UL>
+        <li>John W. Kohler (<a href="mailto:jake@riggshill.com?subject=GenJar">jake@riggshill.com</a>)</li>
+        <li>Jesse Stockall (<a href="mailto:jesse_dev at yahoo.com?subject=GenJar">jesse_dev at yahoo.com</a>)</li>
+
+     </UL>
+     <H2><A NAME="jar">GenJar</A></H2>
+     <UL>
+        <LI><A HREF="#synopsis">Synopsis</A></LI>
+        <LI><A HREF="#impetus">Impetus</A></LI>
+        <LI><A HREF="#genjar"><CODE>&lt;genjar&gt;</CODE></A></LI>
+        <LI><A HREF="#class"><CODE>&lt;class&gt;</CODE></A></LI>
+        <LI><A HREF="#library"><CODE>&lt;library&gt;</CODE></A></LI>
+        <LI><A HREF="#resource"><CODE>&lt;resource&gt;</CODE></A></LI>
+        <LI><A HREF="#classfilter"><CODE>&lt;classfilter&gt;</CODE></A></LI>
+        <LI><A HREF="#classpath"><CODE>&lt;classpath&gt;</CODE></A></LI>
+        <LI><A HREF="#manifest"><CODE>&lt;manifest&gt;</CODE></A></LI>
+     </UL>
+     <H3><A NAME="synopsis">Synopsis</A></H3>
+     <P> Jars a set of classes and resources. </P>
+     <P> The &lt;genjar&gt; task is designed to make Jar creation as easy as
+        possible. You give it the <I>root</I> classes (i.e. entry points) of your
+        application and it will determine all other class files that need to be
+        included in the jar. </P>
+     <P> It does this by recursively examining each class file, extracting a
+        list of all classes referenced, eventually arriving at the complete set of
+        classes required to execute the application. These classes are then placed into
+        the target jar file.</P>
+     <H3><A NAME="impetus">Impetus</A></H3>
+     <P> Why does Ant need <I>another</I> jar task? If a developer uses a lot of
+        libraries (their own and/or third party), including these libraries into an
+        application jar can be a real problem. Does one include the entire library?
+        Just that portion actually used? (And just what libraries <B>did</B> get used?)
+        </P>
+     <P> GenJar was designed to render these questions moot: the JVM knows how
+        to link classes together to execute an application - why can't it be used to
+        bundle all the required pieces into a Jar? </P>
+     <P>No Jar is really complete without a Manifest. To this end, GenJar will
+        generate complete manifest files, listing every file contained in the Jar,
+        along with size and creation dates (useful for problem diagnosis). Manifest
+        attributes may be specified in a 'template' file or directly within the Ant
+        build file. (See <A HREF="#man-examp">this</A> example.)</P>
+     <!-- ===================================================== -->
+
+
+     <H3><A NAME="genjar"><SPAN CLASS="sect2">&lt;genjar&gt;</SPAN></A></H3>
+
+     <P>The <code>&lt;genjar&gt;</code> element is the task level element. It has several child parameters that
+        may be specified: <code>&lt;class&gt;</code>, <code>&lt;classfilter&gt;</code>, <code>&lt;resource&gt;</code> and
+        <code>&lt;manifest&gt;</code>. Along with the standard Ant <code>&lt;classpath&gt;</code> element.</P>
+
+    <H3>Parameters</H3>
+    <table width ="95%" border="1" cellpadding="2" cellspacing="0">
+      <tr>
+        <td valign="top"><b>Attribute</b></td>
+        <td valign="top"><b>Description</b></td>
+        <td align="center" valign="top"><b>Required</b></td>
+      </tr>
+      <tr>
+        <td valign="top">destfile</td>
+        <td>The name of the jar file to create.</td>
+        <td valign="top" valign="middle" rowspan="2">At least one of the two</td>
+      </tr>
+      <tr>
+        <td valign="top">destdir</td>
+        <td>The name of the directory to copy the classes to.</td>
+      </tr>
+    </table>
+
+    <H3>Nested Elements</H3>
+    <!-- CLASS                                          -->
+     <H3><A NAME="class"><SPAN CLASS="sect2">&lt;class&gt;</SPAN></A></H3>
+     <P> Use <CODE>&lt;class&gt;</CODE> elements to specify the names of the classes from which <CODE>&lt;genjar&gt;</CODE> will begin its class dependency search. Each class is recursively
+        searched for the classes on which it depends. In this way, all classes
+        necessary to execute an application can be automatically included in the jar.
+        (See <A HREF="#classfilter">class filter</A> for a method of preventing certain
+        classes from being placed in the jar.)</P>
+     <P>This <I>referenced class inclusion</I> works for all classes that are
+        known at compile time. Any classes that are dynamically loaded cannot be
+        located in this fashion and therefore must be explicitly included using a <CODE>&lt;class&gt;</CODE> element.</P>
+     <P>Note: Class names listed in the &lt;class&gt; element are not subject to
+        filtering performed by the <A HREF="#classfilter">class filter</A>.</P>
+     <H4>Parameters</H4>
+     <table WIDTH="95%" BORDER="1" CELLPADDING="2" CELLSPACING="0">
+        <TR>
+          <TD VALIGN="top"><B>Attribute</B></TD>
+          <TD VALIGN="top"><B>Description</B></TD>
+          <TD ALIGN="center" VALIGN="top"><B>Required</B></TD>
+        </TR>
+        <TR>
+          <TD VALIGN="top">name</TD>
+          <TD> The fully qualified name of the class include in the jar. (Use the
+             standard Java 'dotted' notation.) </TD>
+          <TD VALIGN="top">Yes</TD>
+        </TR>
+        <TR>
+          <TD VALIGN="top">bean</TD>
+          <TD> If set to 'yes', this class' manifest entry will be marked as
+             being a JavaBean (Java-Bean: true). </TD>
+          <TD VALIGN="top">No</TD>
+        </TR>
+     </table>
+     <H4>Examples:</H4>
+
+     <PRE>
+     &lt;genjar destfile="test.jar"&gt;
+         &lt;class name="com.killer.app.Main"/&gt;
+         &lt;class name="com.killer.app.Test"/&gt;
+     &lt;/genjar&gt;
+     </PRE>
+
+     <P> This example builds a simple jar containing all classes necessary to
+        run the two specified applications (Main and Test). </P>
+
+
+     <H3><A NAME="resource"><SPAN CLASS="sect2">&lt;resource&gt;</SPAN></A></H3>
+
+     <P> Use <CODE>&lt;resource&gt;</CODE> elements to specify non-class files to be included in the jar. </P>
+     <table WIDTH="95%" BORDER="1" CELLPADDING="2" CELLSPACING="0">
+        <TR>
+          <TD VALIGN="top"><B>Attribute</B></TD>
+          <TD VALIGN="top"><B>Description</B></TD>
+          <TD ALIGN="center" VALIGN="top"><B>Required</B></TD>
+        </TR>
+        <TR>
+          <TD VALIGN="top">file</TD>
+          <TD>Specifies a single file to include in the jar</TD>
+          <TD VALIGN="top">Yes</TD>
+        </TR>
+        <TR>
+          <TD VALIGN="top">package</TD>
+          <TD>A package name that's to replace the default package name of all
+             resources specified in this <CODE>&lt;resource&gt;</CODE> element.</TD>
+          <TD VALIGN="top">No</TD>
+        </TR>
+     </table>
+     <P>A <CODE>&lt;resource&gt;</CODE> element may take a standard Ant <CODE>fileset</CODE>. In this case, the path given to the jarred files is taken from the
+        &lt;include&gt; parameter. If a package is specified on the resource, then all
+        files included in the fileset will have their paths changed to the
+        <I>package</I> specified.</P>
+     <H4>Examples:</H4>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;resource file="images/icon.png" /&gt;
+&lt;/genjar&gt;</PRE>
+     <P>This example results in the file <CODE>icon.png</CODE> being included in the jar with a path of <CODE>/images</CODE>.</P>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;resource file="images/icon.png" package="com/foo/ka" /&gt;
+&lt;/genjar&gt;</PRE>
+     <P>This results in the file <CODE>icon.png</CODE> being included in the jar with a path of <CODE>/com/foo/ka</CODE>, effectively placing into the <CODE>com.foo.ka</CODE> package.</P>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;resource&gt;
+    &lt;fileset dir="${build.docs}"&gt;
+       &lt;include name="api/**/*.*" /&gt;
+    &lt;/fileset&gt;
+  &lt;/resource&gt;
+&lt;/genjar&gt;</PRE>
+     <P>This example results in all the files in and below the <CODE>${build.docs}/api</CODE> directory being included into the jar. The path used in the jar begins
+        at <CODE>api</CODE>.</P>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;resource file="org/apache/xerces/readers/xcatalog.dtd" /&gt;
+  &lt;classpath&gt;
+    &lt;pathelement location="lib/xerces.jar"/&gt;
+  &lt;/classpath&gt;
+&lt;/genjar&gt;</PRE>
+     <P>This example will copy the xcatalog.dtd file from the Xerces jar (in the
+        classpath) into the target jar.</P>
+     <H3><A NAME="library"><SPAN CLASS="sect2">&lt;library&gt;</SPAN></A></H3>
+     <P>The &lt;library&gt; specifies either a <I>directory tree</I> or a <I>jar
+        file</I> to be included into the generated jar. In either case, the entire
+        content of the referenced library is included in the jar.</P>
+     <P>In the case of a directory, all files contained within (and below) the
+        named directory will be inserted into the jar with a path name beginning at the
+        named directory. For example, if you specify a library like this <CODE>&lt;library dir="docs"/&gt;</CODE> then all files and subdirectories within the <CODE>docs</CODE> will be inserted into the jar with their paths beginning at <CODE>docs</CODE>. </P>
+     <P>If you postfix the directory's path with the <CODE>/*</CODE> pattern, then the named directory will be stripped from the file paths
+        before insertion into the jar. For example, <CODE>&lt;library dir="docs/*"/&gt;</CODE> will insert all the files in and below the <CODE>docs</CODE> into the generated jar, but their paths will begin immediately
+        <I>below</I> <CODE>docs</CODE>.</P>
+     <P>When the specified library is a jar, all entries in the jar are copied
+        into the generated jar with the exception of the library jar's manifest file.
+        Along with the library jar's files, any <I>entry attributes</I> are also
+        imported into the generated jar.</P>
+     <H4>Parameters</H4>
+     <table WIDTH="95%" BORDER="1" CELLPADDING="2" CELLSPACING="0">
+        <TR>
+          <TD valign="top"><B>Attribute</B></TD>
+          <TD valign="top"><B>Description</B></TD>
+          <TD align="center" valign="top"><B>Required</B></TD>
+        </TR>
+        <TR>
+          <TD valign="top">dir</TD>
+          <TD>A directory containing the library files. All files within this
+             directory tree will be added to the jar, the path used in the jar will start at
+             this name.</TD>
+          <TD valign="top" rowspan="2">One of <CODE>dir</CODE> or <CODE>file</CODE></TD>
+        </TR>
+        <tr>
+          <td valign="top">file</td>
+          <td>A jar file to include in the target jar. ALL files in this jar will be
+             copied to the target jar except the manifest file.
+          </td>
+        </tr>
+     </table>
+     <H4>Examples:</H4>
+     <PRE>&lt;library file="${lib}/xerces.jar"/&gt;</PRE>
+     <P>This example will copy the <I>entire</I> xerces.jar into the generated
+        jar. </P>
+     <PRE>&lt;library dir="${lib}/classes" /&gt;</PRE>
+     <P>This example will pull all files located in and below the ${lib}/classes
+        directory into the jar. Their <I>jar names</I> will include the path named by
+        the <CODE>${lib}/classes</CODE>.</P>
+     <PRE>&lt;library dir="${docs}/*"/&gt;</PRE>
+     <P>This example will insert all files (and directories) below the <CODE>${docs}</CODE> directory into the generated jar. But the path named by <CODE>${docs}</CODE> will be <I>stripped</I> form those files before insertion.</P>
+     <P>Assume the following structure and files:</P>
+     <PRE>./docs
+./docs/index.html
+./docs/images
+./docs/images/fig1.jpg
+./docs/images/fig2.jpg</PRE>
+     <P>If you use the library tag this way <CODE>&lt;library dir="docs"/&gt;</CODE> then the jar will contain:</P>
+     <PRE>docs/index.html
+docs/images/fig1.jpg
+docs/images/fig2.jpg</PRE>
+     <P>If you were to specify the library this way: &lt;library
+        dir="docs/*"/&gt; then the jar will contain:</P>
+     <PRE>index.html
+images/fig1.jpg
+images/fig2.jpg</PRE>
+     <P></P>
+     <DIV
+      STYLE="text-align: left; font-family: sans-serif; font-size: 80%; font-style: italic; margin-right: 25%; border: thin solid; padding-top: 1em; padding-right: 1em; padding-left: 1em; padding-bottom: 1em"
+      ALIGN="RIGHT">Note that the main attributes (Main-Class, Class-Path) from a
+        library jar are NOT imported into the generated jar. Any package information
+        embedded within the jar is also lost.</DIV><!-- CLASSFILTER                                   -->
+     <H3><A NAME="classfilter"><SPAN
+        CLASS="sect2">&lt;classfilter&gt;</SPAN></A></H3>
+     <P> Use the &lt;classfilter&gt; element to specify which classes are not to
+        be included in the jar, and as necessary, which classes are to be explicitly
+        included. Any number of &lt;include&gt; and &lt;exclude&gt; elements may be
+        used inside the &lt;classfilter&gt;. </P>
+     <BLOCKQUOTE>
+        <P>(Note that the traditional Ant <CODE>includes/includesfile/excludes/excludesfile</CODE> attributes are not used as they deal with <I>files</I> and GenJar deals
+          with <I>classes</I>.)</P> </BLOCKQUOTE>
+     <P>The class filtering mechanism operates on <I>patterns</I>. These
+        patterns are class name prefixes, i.e. partial package or class names. If a
+        class' fully qualified name <I>starts with</I> an include/exlcude pattern, then
+        it's considered a match. For example: the class name <CODE>com.foo.Test</CODE> matches the pattern <CODE>com.foo.</CODE> because the class name <I>starts with</I> the pattern.</P>
+     <P> When determining if a class should be in the jar, &lt;genjar&gt; first
+        checks the list of <I>include</I> patterns. If the candidate class' name
+        matches an <I>include pattern</I> then the class is included in the jar
+        (explicit inclusion). If the class' name does not match an include pattern but
+        matches an exclude pattern, the class is not included in the jar (explicit
+        exclusion). If the class' name does not match any patterns, then it's included
+        in the jar by default (implicit inclusion).</P>
+     <P>This algorithm allows the user to select very narrow slices of large
+        package spaces. For example, one can include just the Ant <I>types</I> package
+        into a jar by excluding the entire <I>apache</I> package space and then
+        including specifically the Ant <I>types</I> package:</P>
+     <PRE>&lt;classfilter&gt;
+  &lt;exclude name="org.apache." /&gt;  &lt;!-- exclude the entire apache package space --&gt;
+  &lt;include name="org.apache.tools.ant.types." /&gt; &lt;!-- but include Ant types --&gt;
+&lt;/classfilter&gt;</PRE>
+     <P>This example demonstrates the fact that <CODE>include</CODE> patterns override <CODE>exclude</CODE> patterns.</P>
+     <P> There is a default list of <I>exclude patterns</I> that's compiled into
+        the class filter: <MENU>
+        <LI>java.</LI>
+        <LI>javax.</LI>
+        <LI>sun.</LI>
+        <LI>sunw.</LI>
+        <LI>com.sun.</LI>
+        <LI>org.omg.</LI> </MENU></P>
+
+    <p>As of GenJar 0.4.0 the site-excludes file is no longer included.<p>
+
+     <h4>Examples:</h4>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;class name="com.killer.app.Main"/&gt;
+  &lt;classfilter&gt;
+    &lt;exclude name="org.apache."/&gt;
+    &lt;exclude name="com.ibm."/&gt;
+  &lt;/classfilter&gt;
+&lt;/genjar&gt;</PRE>
+     <P> This specifies a jar that will contain all classes referenced by <CODE>com.killer.app.Main</CODE> except those in any package starting with <CODE>org.apache</CODE> or <CODE>com.ibm</CODE>. </P>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;class name="com.killer.app.Main"/&gt;
+  &lt;classfilter&gt;
+    &lt;include name="org.apache.ant"/&gt;
+    &lt;exclude name="org.apache."/&gt;
+    &lt;exclude name="com.ibm."/&gt;
+  &lt;/classfilter&gt;
+&lt;/genjar&gt;</PRE>
+     <P> This specifies a jar that will contain all classes referenced by <CODE>com.killer.app.Main</CODE> except those in any package starting with <CODE>org.apache</CODE> or <CODE>com.ibm</CODE>. All referenced classes from <CODE>org.apache.ant</CODE> will be included as an explicit inclusion overrides an exclusion. </P>	<!-- CLASSPATH                                   -->
+     <H3><A NAME="classpath"><SPAN
+        CLASS="sect2">&lt;classpath&gt;</SPAN></A></H3>
+     <P> The &lt;classpath&gt; element is used to specify search paths to
+        genjar's jar builder. See the Ant documentation for a full discussion on
+        &lt;classpath&gt;. </P>
+     <H4>Examples:</H4>
+     <PRE>&lt;genjar destfile="test.jar"&gt;
+  &lt;class name="com.killer.app.Main"/&gt;
+  &lt;classfilter&gt;
+    &lt;exclude name="org.apache."/&gt;
+    &lt;exclude name="com.ibm."/&gt;
+  &lt;/classfilter&gt;
+  &lt;classpath&gt;
+    &lt;pathelement location="build/classes"/&gt;
+  &lt;/classpath&gt;
+&lt;/genjar&gt;</PRE>
+     <H3><A NAME="manifest"><SPAN CLASS="sect2">&lt;manifest&gt;</SPAN></A></H3>
+
+     <P> The &lt;manifest&gt; element controls how the jar manifest is initially
+        constructed and what <I>main</I> attributes are placed into the manifest. (For
+        more information on Jar Manifests, see
+        <A HREF="http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html">this</A>.)</P>
+     <P>The &lt;manifest&gt; element allows the developer to specify a template
+        manifest file that will form the base for the manifest placed into the jar.
+        Additionally, <I>main</I> and <I>per-entry</I> attributes may be specified. And
+        control over the default <I>per-entry</I> attributes may be asserted.</P>
+     <P>To specify a <I>template</I> manifest file, use the <CODE>template</CODE> attribute on the <CODE>&lt;manifest&gt;</CODE> element. All attributes (main and per-entry) will be included in the
+        manifest written to the jar. Note that any duplicate attributes generated by
+        GenJar will overwrite those in the template manifest. Example:</P>
+     <PRE>&lt;manifest template="default.mft"&gt;
+....
+&lt;/manifest&gt;</PRE>
+     <P>Normally GenJar will generate a set of per-entry attributes for every
+        file included in the jar. These attributes include the full path to the
+        original resource, the last modified date of that resource and the size of that
+        resource. This information is included in the manifest to aid in tracking down
+        problems like: "<I>Do I have the right version of that library file?</I>" and
+        "<I>Where did that class file come from? Is it the old one?</I>" These
+        automatic per-entry attributes may be disabled by specifying <CODE>generateEntryAttributes='no'</CODE> in the <CODE>&lt;manifest&gt;</CODE> element. At least two attributes are generated for each entry placed in
+        the jar:</P>
+     <DL>
+        <DT><CODE>Content-Location</CODE></DT>
+        <DD>This attribute is set to the absolute path to the source file or
+          archive (jar/zip).</DD>
+        <DT><CODE>Last-Modified</CODE></DT>
+        <DD>This attribute is set to the last modification time of the source
+          file (file/jar/zip) or the modification time from the source jar (if the source
+          is in fact a jar).</DD>
+        <DT><CODE><I>others</I></CODE></DT>
+        <DD>If the jar entry is taken from a jar, then the source's
+          entry-attributes are imported into the new jar.</DD>
+     </DL>
+     <H4>&lt;manifest&gt; Parameters</H4>
+     <TABLE WIDTH="95%" BORDER="1" CELLPADDING="2" CELLSPACING="0">
+        <TR>
+          <TD VALIGN="top"><B>Attribute</B></TD>
+          <TD VALIGN="top"><B>Description</B></TD>
+          <TD ALIGN="center" VALIGN="top"><B>Required</B></TD>
+        </TR>
+        <TR>
+          <TD>template</TD>
+          <TD>path to template file</TD>
+          <TD>No</TD>
+        </TR>
+        <TR><TD>generateEntryAttributes</TD><TD>prohibits generation of per-entry
+             attributes (see text)</TD><TD>No</TD>
+        </TR>
+     </TABLE>
+     <P>Manifest attributes are specified by using the child <CODE>&lt;attribute&gt;</CODE> elements.</P>
+     <H4>&lt;attribute&gt; Parameters</H4>
+     <TABLE WIDTH="95%" BORDER="1" CELLPADDING="2" CELLSPACING="0">
+        <TR>
+          <TD VALIGN="TOP" ALIGN="LEFT"><B>Attribute</B></TD>
+          <TD VALIGN="TOP" ALIGN="LEFT"><B>Description</B></TD>
+          <TD ALIGN="LEFT" VALIGN="TOP"><B>Required</B></TD>
+        </TR>
+        <TR>
+          <TD VALIGN="TOP" ALIGN="LEFT">name </TD>
+          <TD VALIGN="TOP" ALIGN="LEFT">the attribute's name</TD>
+          <TD VALIGN="TOP" ALIGN="LEFT">Yes</TD>
+        </TR>
+        <TR><TD VALIGN="TOP" ALIGN="LEFT">value</TD><TD VALIGN="TOP"
+          ALIGN="LEFT">the attribute's value</TD><TD VALIGN="TOP" ALIGN="LEFT">Yes</TD>
+        </TR>
+        <TR><TD VALIGN="TOP" ALIGN="LEFT">entry</TD><TD VALIGN="TOP"
+          ALIGN="LEFT">the entry name to which this attribute belongs<BR>If not supplied
+             (or equal to '<CODE>main</CODE>'), then the attribute is a <I>Main-Entry</I>.</TD><TD VALIGN="TOP"
+          ALIGN="LEFT">No</TD>
+        </TR>
+     </TABLE>
+     <P>Example:</P>
+     <PRE>&lt;manifest&gt;
+  &lt;attribute name="Specification-Title"    value="Killer App" /&gt;
+  &lt;attribute name="Specification-Version"  value="2.0" /&gt;
+  &lt;attribute name="Specification-Vendor"   value="Foo Bar Inc." /&gt;
+  &lt;attribute name="Implementation-Title"   value="KA"  /&gt;
+  &lt;attribute name="Implementation-Version" value="1.3.7" /&gt;
+  &lt;attribute entry="com/foobar/ka/main.class"
+             name="Icon-Large"
+             value="large-icon.png" /&gt;
+&lt;manifest&gt;</PRE><HR>
+     <H3>Complete Example</H3>
+     <PRE>&lt;genjar destfile="${build.dist.jar}"&gt;
+  &lt;class name="com.riggshill.catalog.Servlet" /&gt;
+
+  &lt;classfilter&gt;
+    &lt;!-- don't load any of the apache stuff (XML et.al.)--&gt;
+    &lt;exclude name="org.apache." /&gt;
+    &lt;!-- but we borrow some routines from an Ant task.... --&gt;
+    &lt;include name="org.apache.tools.ant.taskdefs.optional." /&gt;
+  &lt;/classfilter&gt;
+
+  &lt;classpath&gt;
+    &lt;pathelement location="${build.dest}" /&gt;
+  &lt;/classpath&gt;
+
+  &lt;!-- include &amp; repackage some icons (for the visual Ant builder) --&gt;
+  &lt;resource name="images/icon-large.png" package="com.riggshill.catalog." /&gt;
+  &lt;resource name="images/icon-small.png" package="com.riggshill.catalog." /&gt;
+  &lt;!-- include the docs &amp; source --&gt;
+  &lt;resource&gt;
+    &lt;fileset dir="${build.dir}"&gt;
+      &lt;include name="docs/**/*.*" /&gt;
+      &lt;include name="src/**/*.*" /&gt;
+    &lt;/fileset&gt;
+  &lt;/resource&gt;
+
+  <A NAME="man-examp">&lt;manifest template="manifest.mf"&gt;</A>
+    &lt;attribute name="Specification-Title"      value="${Name}" /&gt;
+    &lt;attribute name="Specification-Version"    value="${version}" /&gt;
+    &lt;attribute name="Specification-Vendor"     value="RiggsHill Software" /&gt;
+    &lt;attribute name="Implementation-Title"     value="${Name}" /&gt;
+    &lt;attribute name="Implementation-Version"   value="${version}" /&gt;
+    &lt;attribute name="Implementation-Vendor"    value="RiggsHill Software" /&gt;
+    &lt;attribute name="Implementation-Vendor-Id" value="JWK" /&gt;
+  &lt;/manifest&gt;
+
+
+&lt;/genjar&gt;</PRE></BODY>
+</HTML>

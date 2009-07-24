@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<project name="GenJar" default="jars" basedir=".">
+    <!--
+    ============================================================================
+        Public (command-line) targets
+    ============================================================================
+    -->
+    <target
+        name="jars"
+        depends="build.jar,build.src.jar"
+        description="Build release versions with jars"
+    />
+
+    <target
+        name="deploy"
+        depends="deploy.website"
+        description="Copy the generated file to runtime locations">
+    </target>
+
+    <target
+        name="dist"
+        depends="clean, build.dist"
+        description="Build the distribution package"
+    />
+
+    <target
+        name="test"
+        depends="build.setup, run.tests"
+        description="Run the test suite"
+    />
+
+    <target
+        name="clean"
+        depends="build.clean"
+        description="Clear all generated files"
+    />
+
+    <!--
+    ============================================================================
+        Internal targets for setting up the build env.
+    ============================================================================
+    -->
+    <property file=".ant.properties" />
+    <property file="${user.home}/.ant.properties" />
+
+    <property name="version" value="1.9.9"/>
+
+    <property name="src.dir"        value="${basedir}/src"/>
+    <property name="lib.dir"        value="${basedir}/lib"/>
+    <property name="doc.dir"        value="${basedir}/docs"/>
+    <property name="etc.dir"        value="${basedir}/etc"/>
+    <property name="build.dir"      value="${basedir}/build"/>
+    <property name="test.dir"       value="${basedir}/test"/>
+
+    <property name="build.javadocs.dir"   value="${doc.dir}/api"/>
+    <property name="build.classes.dir"    value="${build.dir}/classes"/>
+    <property name="build.src.dir"        value="${build.dir}/src"/>
+    <property name="build.lib.dir"        value="${build.dir}/lib"/>
+    <property name="build.dist.dir"       value="${build.dir}/dist"/>
+    <property name="build.audit.dir"      value="${build.dir}/audit"/>
+
+    <property name="package"              value="net.sf.genjar"/>
+
+    <patternset id="dist-src.patternset">
+        <include name="build.xml"/>
+        <include name="${ant.project.name}.jpx"/>
+        <include name="src/**/*"/>
+        <include name="docs/api/**/*"/>
+        <include name="docs/manual.html"/>
+        <include name="docs/ChangeLog"/>
+        <include name="docs/License"/>
+        <include name="lib/*.jar"/>
+        <include name="etc/**/*"/>
+        <include name="test/src/**/*"/>
+        <include name="test/etc/**/*"/>
+        <include name="test/lib/**/*"/>
+        <include name="test/build.xml"/>
+        <exclude name="**/*~" />
+        <exclude name="**/*.bak" />
+        <exclude name="**/.#*" />
+        <exclude name="**/*.swp" />
+    </patternset>
+
+    <path id="classpath">
+        <pathelement location="${build.classes.dir}"/>
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
+    <target name="build.setup">
+        <mkdir dir="${build.classes.dir}"/>
+        <mkdir dir="${build.javadocs.dir}"/>
+        <mkdir dir="${build.lib.dir}"/>
+        <mkdir dir="${build.dist.dir}"/>
+        <property name="debug.flag" value="true"/>
+    </target>
+
+
+    <!--
+    ============================================================================
+        Internal targets for compiling and jaring the source.
+    ============================================================================
+    -->
+    <target name="build.java" depends="build.setup">
+        <depend
+            srcdir="${src.dir}"
+            destdir="${build.classes.dir}"
+            closure="yes"
+        />
+        <javac
+            srcdir="${src.dir}"
+            destdir="${build.classes.dir}"
+            debug="${debug.flag}"
+            target="1.5"
+            classpathref="classpath"
+        />
+    </target>
+
+    <target name="build.jar" depends="build.java">
+        <taskdef
+            file="${etc.dir}/genjar.properties"
+            classpathref="classpath"
+        />
+        <genjar destfile="${build.lib.dir}/${ant.project.name}.jar">
+            <class name="${package}.GenJar"/>
+            <classpath refid="classpath" />
+            <classfilter>
+                <include name="${package}"/>
+                <exclude name="org.apache.tools.ant"/>
+            </classfilter>
+            <fileset file="${etc.dir}/genjar.properties"/>
+        </genjar>
+    </target>
+
+    <target name="build.src.jar" depends="build.java">
+        <jar destfile="${build.lib.dir}/${ant.project.name}_src.jar">
+            <fileset dir="src" includes="net/sf/genjar/**/*.java" />
+            <fileset file="${etc.dir}/genjar.properties" />
+        </jar>
+    </target>
+
+
+    <!--
+    ============================================================================
+        Creates the API documentation
+    ============================================================================
+    -->
+    <target name="build.javadoc">
+        <mkdir dir="${build.javadocs.dir}"/>
+        <javadoc
+            sourcepath="${src.dir}"
+            packagenames="${package}"
+            destdir="${build.javadocs.dir}"
+            version="true"
+            author="true"
+            use="true"
+            Private="false"
+            splitindex="true"
+            windowtitle="${ant.project.name} API">
+            <bottom>
+                <![CDATA[<i>Copyright &#169; 2002, 2003 Jesse Stockall. All Rights Reserved.</i>]]>
+            </bottom>
+            <classpath>
+                <pathelement location="${ant.home}/lib/ant.jar"/>
+                <pathelement location="${ant.home}/lib/optional.jar"/>
+                <path refid="classpath"/>
+            </classpath>
+            <link href="http://java.sun.com/j2se/1.3/docs/api/" />
+        </javadoc>
+    </target>
+
+
+    <!--
+    ============================================================================
+        Builds the source and binary distributions.
+    ============================================================================
+    -->
+    <target name="build.dist" depends="build.jar, build.src.jar, build.javadoc">
+        <!-- src dist -->
+        <tar
+            tarfile="${build.dist.dir}/${ant.project.name}-${version}-src.tar.gz"
+            compression="gzip">
+            <tarfileset dir="${basedir}" prefix="${ant.project.name}">
+                <patternset refid="dist-src.patternset" />
+            </tarfileset>
+        </tar>
+        <zip zipfile="${build.dist.dir}/${ant.project.name}-${version}-src.zip">
+            <zipfileset dir="${basedir}" prefix="${ant.project.name}">
+                <patternset refid="dist-src.patternset" />
+            </zipfileset>
+        </zip>
+        <!-- bin dist -->
+        <zip zipfile="${build.dist.dir}/${ant.project.name}-${version}.zip">
+            <zipfileset
+                dir="${build.dir}/lib"
+                includes="${ant.project.name}.jar"
+                prefix="${ant.project.name}"
+            />
+            <zipfileset
+                dir="${doc.dir}"
+                includes="manual.html, License, ChangeLog"
+                prefix="${ant.project.name}"
+            />
+        </zip>
+        <tar
+            tarfile="${build.dist.dir}/${ant.project.name}-${version}.tar.gz"
+            compression="gzip">
+            <tarfileset
+                dir="${build.dir}/lib"
+                includes="${ant.project.name}.jar"
+                prefix="${ant.project.name}"
+            />
+            <tarfileset
+                dir="${doc.dir}"
+                includes="manual.html, License, ChangeLog"
+                prefix="${ant.project.name}"
+            />
+        </tar>
+    </target>
+
+
+    <!--
+    ============================================================================
+        Run the test suite
+    ============================================================================
+    -->
+    <target name="build.tests" depends="build.java">
+        <mkdir dir="${test.dir}/build/classes"/>
+        <depend
+            srcdir="${test.dir}/src"
+            destdir="${test.dir}/build/classes"
+            closure="yes"
+        />
+        <javac
+            srcdir="${test.dir}/src"
+            destdir="${test.dir}/build/classes"
+            debug="true">
+            <classpath location="${test.dir}/lib/ant-testutil.jar"/>
+        </javac>
+    </target>
+
+    <target name="run.tests" depends="build.tests">
+        <junit
+            haltonfailure="yes"
+            fork="false"
+            filtertrace="false">
+            <classpath location="${test.dir}/build/classes"/>
+            <classpath location="${test.dir}/lib/ant-testutil.jar"/>
+            <formatter type="plain" usefile="false" />
+            <test name="${package}.GenJarTest" />
+        </junit>
+    </target>
+
+    <target name="deploy.website">
+        <exec
+            executable="scp"
+            dir="${doc.dir}/website">
+            <arg line="-S ssh -r ./ jstockall@genjar.sourceforge.net:/home/groups/g/ge/genjar/htdocs"/>
+        </exec>
+        <exec
+            executable="scp"
+            dir="${doc.dir}">
+            <arg line="-S ssh -r ./manual.html jstockall@genjar.sourceforge.net:/home/groups/g/ge/genjar/htdocs"/>
+        </exec>
+    </target>
+
+
+    <!--
+    ===================================================================
+     Quality Analyzer
+    ===================================================================
+    -->
+    <target name="audit" description="Run Maudit">
+        <delete dir="${build.audit.dir}"/>
+        <mkdir dir="${build.audit.dir}"/>
+
+        <maudit tofile="${build.audit.dir}/audit.xml"
+                metamatahome="/usr/local/metamata"
+                maxmemory="128m">
+            <sourcepath location="${src.dir}"/>
+            <classpath>
+                <path refid="classpath"/>
+                <fileset dir="${ant.home}/lib">
+                    <include name="**/*.jar"/>
+                </fileset>
+                <pathelement location="${test.dir}/lib/ant-testutil.jar"/>
+            </classpath>
+            <fileset
+                dir="${src.dir}"
+                includes="**/*.java"
+            />
+        </maudit>
+        <!-- Generate report -->
+        <style in="${build.audit.dir}/audit.xml" style="${etc.dir}/maudit-frames.xsl" out="${build.audit.dir}/null.tmp">
+            <param name="output.dir" expression="${build.audit.dir}"/>
+        </style>
+    </target>
+
+
+    <!--
+    ============================================================================
+     Beautify the code
+    ============================================================================
+    -->
+    <target name="beautify">
+        <taskdef name="pretty" classname="org.acm.seguin.ant.Pretty"
+                 classpath="${lib.dir}/prettyprinter.jar"/>
+
+        <pretty settingsDir="${etc.dir}" cvs="true" compileDir="${build.classes.dir}">
+            <fileset dir="${src.dir}">
+                <include name="**/*.java"/>
+            </fileset>
+        </pretty>
+    </target>
+
+
+    <!--
+    ============================================================================
+        Remove all files generated by build process.
+    ============================================================================
+    -->
+    <target name="build.clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${build.javadocs.dir}"/>
+        <delete>
+            <fileset dir="${src.dir}" defaultexcludes="no">
+                <include name="**/*~" />
+                <include name="**/*.bak" />
+                <include name="**/.#*" />
+                <include name="**/*.swp" />
+            </fileset>
+            <fileset dir="${basedir}" defaultexcludes="no">
+                <include name="*~" />
+                <include name="*.bak" />
+                <include name=".#*" />
+                <include name="*.swp" />
+            </fileset>
+        </delete>
+        <ant dir="${test.dir}" target="clean"/>
+    </target>
+
+</project>
+<!-- vi:set ts=4 sw=4: -->

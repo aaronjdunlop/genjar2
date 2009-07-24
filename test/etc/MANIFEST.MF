@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Built-By: GenJar2Test
+Extension-name: GenJar2Test
+Created-By: Apache Ant 1.5.1
+
