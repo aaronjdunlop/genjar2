@@ -1,0 +1,11 @@
+package1/Class1.class
+file.properties
+genjar.properties
+package1/imagedir1/sawfish-appearance.png
+package1/imagedir1/sawfish-edgeflip.png
+package1/imagedir1/sawfish-focus.png
+package1/imagedir1/sawfish-logo.png
+package1/imagedir2/subimagedir/sawfish-placement.png
+package1/imagedir2/subimagedir/sawfish-shortcuts.png
+package1/imagedir2/subimagedir/sawfish-tooltips.png
+package1/imagedir2/subimagedir/sawfish-workspaces.png

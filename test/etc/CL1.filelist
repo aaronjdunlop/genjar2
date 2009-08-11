@@ -1,4 +1,5 @@
-test/build/CL1/package1/Class1.class
-test/build/CL1/package1/Class2.class
-test/build/CL1/package2/Class4.class
-test/build/CL1/META-INF/MANIFEST.MF
+META-INF/INDEX.LIST
+package1/Class1.class
+package1/Class2.class
+package2/Class4.class
+META-INF/MANIFEST.MF

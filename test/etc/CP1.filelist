@@ -1,4 +1,4 @@
-test/build/CP1/package1/Class1.class
-test/build/CP1/package1/Class2.class
-test/build/CP1/package1/Class3.class
-test/build/CP1/package2/Class4.class
+package1/Class1.class
+package1/Class2.class
+package1/Class3.class
+package2/Class4.class
