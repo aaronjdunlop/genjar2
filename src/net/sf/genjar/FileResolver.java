@@ -52,9 +52,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.jar.Attributes;
 
-import org.apache.tools.ant.Project;
+import org.apache.tools.ant.types.FileSet;
 
 /**
  * Represents a directory in the classpath.
@@ -76,10 +75,9 @@ import org.apache.tools.ant.Project;
  * @created February 23, 2003
  * @version $Revision: 1.3 $ $Date: 2003/02/23 18:25:23 $
  */
-class FileResolver extends PathResolver
+class FileResolver extends BaseResolver
 {
-    /** the 'base' directory as specified in the classpath */
-    File base = null;
+    private final File baseDir;
 
     /**
      * constructs a new FileResolver using the given <i>base directory</i>
@@ -87,12 +85,10 @@ class FileResolver extends PathResolver
      * @param base a directory at which file searches begin
      * @param log an ant logging mechanism
      */
-    FileResolver(File base, Project project)
+    FileResolver(FileSet fileset)
     {
-        super(project);
-
-        this.base = base;
-        project.log("Resolver: " + base, Project.MSG_VERBOSE);
+        super(fileset);
+        this.baseDir = fileset.getDir();
     }
 
     /**
@@ -105,38 +101,22 @@ class FileResolver extends PathResolver
     /**
      * Resolve the file specified in a JarEntrySpec to a stream.
      *
-     * @param spec the JarEntrySpec to resolve
+     * @param jarEntry the JarEntrySpec to resolve
      * @return an InputStream open on the resolved file or null
      * @exception IOException if opening the stream fails
      */
     @Override
-    public InputStream resolve(GenJarEntry spec) throws IOException
+    public InputStream resolve(final String jarEntry) throws IOException
     {
-        InputStream is = null;
-        File f;
-
-        //
-        // if the entrySpec already has a source file
-        // associated, use it otherwise attempt to
-        // create one
-        //
-        if ((f = spec.getSourceFile()) == null)
+        if (includedFiles != null && !includedFiles.contains(jarEntry))
         {
-            f = new File(base, spec.getJarName());
+            return null;
         }
-
-        if (f.exists())
+        final File f = new File(baseDir, jarEntry);
+        if (!f.exists())
         {
-            spec.setSourceFile(f);
-            is = new FileInputStream(f);
-
-            Attributes atts = spec.getAttributes();
-
-            atts.putValue(CONTENT_LOC, f.getAbsolutePath());
-            atts.putValue(LAST_MOD, formatDate(f.lastModified()));
-            project.log(spec.getJarName() + "->" + base, Project.MSG_DEBUG);
+            return null;
         }
-        return is;
+        return new FileInputStream(f);
     }
 }
-// vi:set ts=4 sw=4:

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<project name="GenJar" default="jars" basedir=".">
+<project name="genjar" default="jars" basedir=".">
     <!--
     ============================================================================
         Public (command-line) targets

@@ -49,10 +49,8 @@
 package net.sf.genjar;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -87,12 +85,11 @@ import org.apache.tools.ant.types.FileSet;
  * @created February 23, 2003
  * @version $Revision: 1.3 $ $Date: 2003/02/23 18:25:23 $
  */
-public class RootClass extends ContainedObject
+public class RootClass
 {
-    private final Set<String> classfileNames = new HashSet<String>();
     private boolean singleNameSet = false;
-    private final List<GenJarEntry> jarEntries = new ArrayList<GenJarEntry>();
-    private final List<FileSet> filesets = new ArrayList<FileSet>(3);
+    private final List<String> jarEntries = new LinkedList<String>();
+    private final List<FileSet> filesets = new LinkedList<FileSet>();
     private final Project project;
 
     /**
@@ -114,7 +111,7 @@ public class RootClass extends ContainedObject
     public RootClass(Project project, String name)
     {
         this.project = project;
-        this.classfileNames.add(name);
+        this.jarEntries.add(name);
         this.singleNameSet = true;
     }
 
@@ -123,8 +120,7 @@ public class RootClass extends ContainedObject
      *
      * @return the list of all dependent classes
      */
-    @Override
-    public List<GenJarEntry> getJarEntries()
+    public List<String> getJarEntries()
     {
         return jarEntries;
     }
@@ -137,11 +133,8 @@ public class RootClass extends ContainedObject
     public void setName(String name)
     {
         String classfileName = name.replace('.', '/') + ".class";
-        this.classfileNames.add(classfileName);
         this.singleNameSet = true;
-
-        GenJarEntry jes = new GenJarEntry(classfileName, null);
-        jarEntries.add(jes);
+        jarEntries.add(classfileName);
     }
 
     /**
@@ -150,7 +143,6 @@ public class RootClass extends ContainedObject
      * @param gj Description of the Parameter
      * @throws IOException Description of the Exception
      */
-    @Override
     public void resolve(GenJar gj) throws IOException
     {
         // TODO: We really want to do this sometime before resolve...
@@ -163,20 +155,12 @@ public class RootClass extends ContainedObject
             {
                 if (filename.endsWith(".class"))
                 {
-                    classfileNames.add(filename);
-                    // jarEntries.add(new JarEntrySpec(filename, null));
-                    // gj.addClass(new RootClass(project, files[i]));
+                    jarEntries.add(filename);
                 }
             }
         }
 
-        for (String classfileName : classfileNames)
-        {
-            jarEntries.add(new GenJarEntry(classfileName, null));
-        }
-
-        // TODO: Make this a Set of Strings?
-        // get depends on all class files
+        // get dependencies for all class files
         gj.generateDependancies(jarEntries);
     }
 
@@ -198,7 +182,6 @@ public class RootClass extends ContainedObject
     @Override
     public String toString()
     {
-        return classfileNames.toString();
+        return jarEntries.toString();
     }
 }
-// vi:set ts=4 sw=4:

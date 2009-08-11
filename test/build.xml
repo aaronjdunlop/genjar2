@@ -1,20 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<project name="GenJar2Test" default="full" basedir=".">
+<project name="genjar2-test" default="full" basedir=".">
+
+    <property name="target-jar" value="build/${ant.project.name}-tmp.jar" />
 
     <target name="full" depends="clean,
-                 build.java,
-                 test.resource.1,
-                 test.resource.2,
-                 test.class.1,
-                 test.class.2,
-                 test.class.3,
-                 test.classfilter.1,
-                 test.classfilter.2,
-                 test.library.1,
-                 test.library.2,
-                 test.library.3,
-                 test.fileset.1" />
+        build.java,
+        test.ex.1,
+        test.ex.2,
+        test.ex.3,
+        test.class.1,
+        test.class.2,
+        test.class.3,
+        test.class.4,
+        test.classfilter.1,
+        test.classfilter.2,
+        test.fileset.1,
+        test.fileset.2,
+        test.zipfileset.1,
+        test.zipfileset.2,
+        test.zipfileset.3,
+        test.zipgroupfileset.1,
+        test.manifest.1,
+        test.manifest.2,
+        test.sign.jar,
+        test.classpath.1,
+        test.locking.1,
+        test.profile" />
 
     <target name="init">
         <taskdef file="etc/genjar.properties">
@@ -28,6 +40,7 @@
         <javac srcdir="src" destdir="build/classes" debug="true">
             <classpath>
                 <fileset dir="../lib" includes="*.jar" />
+                <fileset dir="etc" includes="test3.jar" />
             </classpath>
         </javac>
         <jar destfile="etc/test-classes.jar">
@@ -43,121 +56,57 @@
 
     <!-- Tests attempt to load file attribute and fileset for same resource element -->
     <target name="test.ex.2" depends="init">
-        <genjar destfile="build/lib/file.jar">
+        <genjar destfile="${target-jar}">
             <fileset file="package2">
                 <fileset dir="etc" includes="*" />
             </fileset>
         </genjar>
     </target>
 
-    <!-- Tests attempt to generate dependencies using a path that is a file -->
-    <target name="test.ex.3" depends="init">
-        <touch file="build/lib/file" />
-        <genjar destdir="build/lib/file" />
-    </target>
-
     <!-- Tests attempt to specify both a file and dir for the zipfileset element. -->
-    <target name="test.ex.4" depends="init">
-        <genjar destfile="build/lib/file.jar">
-            <zipfileset src="etc/test1.jar" dir="build/lib" />
-        </genjar>
-    </target>
-
-    <!-- Tests resource elements with file attributes -->
-    <target name="test.resource.1" depends="init">
-        <mkdir dir="build/R1" />
-        <genjar destdir="build/R1">
-            <class name="package1.Class1" />
-            <classpath location="build/classes" />
-            <fileset file="etc/genjar.properties" />
-            <fileset file="etc/file.properties" />
-            <fileset file="src/package1/imagedir1/sawfish-logo.png" />
-        </genjar>
-    </target>
-
-    <!-- Tests resource elements with filesets -->
-    <target name="test.resource.2" depends="init">
-        <genjar destfile="build/lib/${ant.project.name}-R2.jar">
-            <class name="package1.Class1" />
-            <classpath location="build/classes" />
-            <!-- Included filesets -->
-            <fileset dir="etc" includes="file.properties" />
-            <fileset dir="src" includes="**/*.png" />
-        </genjar>
-        <mkdir dir="build/R2" />
-        <unzip src="build/lib/${ant.project.name}-R2.jar" dest="build/R2" />
-    </target>
-
-    <!-- Tests filesets with includes and excludes -->
-    <target name="test.fileset.1" depends="init">
-        <mkdir dir="build/F1" />
-        <genjar destdir="build/F1">
-            <class name="package1.Class1" />
-            <classpath location="build/classes" />
-            <fileset dir="etc" includes="genjar.properties" />
-            <fileset dir="etc" includes="file.properties"/>
-            <fileset dir="src" includes="**/*.png" excludes="**/sawfish-m*.png"/>
+    <target name="test.ex.3" depends="init">
+        <genjar destfile="${target-jar}">
+            <zipfileset src="etc/xbean_xpath.jar" dir="build/lib" />
         </genjar>
     </target>
 
     <!-- Tests simple class dependency building -->
     <target name="test.class.1" depends="init">
-        <genjar destfile="build/lib/${ant.project.name}-CL1.jar">
+        <genjar destfile="${target-jar}">
             <class name="package1.Class2" />
             <classpath location="build/classes" />
         </genjar>
-        <mkdir dir="build/CL1" />
-        <unzip src="build/lib/${ant.project.name}-CL1.jar" dest="build/CL1" />
     </target>
 
     <!-- Tests class dependency building with classes as method params -->
     <target name="test.class.2" depends="init">
-        <genjar jarfile="build/lib/${ant.project.name}-CL2.jar">
+        <genjar destfile="${target-jar}">
             <class name="package2.Class5" />
             <classpath location="build/classes" />
         </genjar>
-        <mkdir dir="build/CL2" />
-        <unzip src="build/lib/${ant.project.name}-CL2.jar" dest="build/CL2" />
     </target>
 
     <!-- Tests class dependency building with a fileset in <class> -->
     <target name="test.class.3" depends="init">
-        <genjar jarfile="build/lib/${ant.project.name}-CL3.jar">
+        <genjar destfile="${target-jar}">
             <class>
-                <fileset dir="build/classes">
-                    <include name="package1/*" />
-                </fileset>
+                <fileset dir="build/classes" includes="package1/*" />
             </class>
             <classpath location="build/classes" />
         </genjar>
-        <mkdir dir="build/CL3" />
-        <unzip src="build/lib/${ant.project.name}-CL3.jar" dest="build/CL3" />
     </target>
 
     <!-- Tests class dependency building with inner classes -->
     <target name="test.class.4" depends="init">
-        <genjar jarfile="build/lib/${ant.project.name}-CL4.jar">
+        <genjar destfile="${target-jar}">
             <class name="package3.Class7" />
             <classpath location="build/classes" />
         </genjar>
-        <mkdir dir="build/CL4" />
-        <unzip src="build/lib/${ant.project.name}-CL4.jar" dest="build/CL4" />
-    </target>
-
-    <!-- Tests class dependency building with inner classes in a jar -->
-    <target name="test.class.5" depends="init">
-        <genjar jarfile="build/lib/${ant.project.name}-CL5.jar">
-            <class name="package4.Class8" />
-            <classpath location="test-classes.jar,../lib/hibernate3.jar,../lib/javassist-3.4.GA.jar" />
-        </genjar>
-        <mkdir dir="build/CL5" />
-        <unzip src="build/lib/${ant.project.name}-CL5.jar" dest="build/CL5" />
     </target>
 
     <!-- Tests the include / exclude for classfilters -->
     <target name="test.classfilter.1" depends="init">
-        <mkdir dir="build/CF1" />
-        <genjar destdir="build/CF1">
+        <genjar destfile="${target-jar}">
             <class name="package1.Class3" />
             <classpath location="build/classes" />
             <classpath location="${java.home}/lib/rt.jar" />
@@ -171,8 +120,7 @@
     <!-- Tests the include / exclude for classfilters -->
     <target name="test.classfilter.2" depends="init">
         <property name="flag1" value="true" />
-        <mkdir dir="build/CF2" />
-        <genjar destdir="build/CF2">
+        <genjar destfile="${target-jar}">
             <class name="package1.Class3" />
             <classpath location="build/classes" />
             <classpath location="${java.home}/lib/rt.jar" />
@@ -184,77 +132,117 @@
         </genjar>
     </target>
 
-    <!-- Tests the library file inclusion to disk -->
-    <target name="test.library.1" depends="init">
-        <mkdir dir="build/L1" />
-        <genjar destdir="build/L1">
-            <zipfileset src="etc/test1.jar" />
+    <!-- Tests the fileset 'includes' and 'excludes' attributes -->
+    <target name="test.fileset.1" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class1" />
+            <classpath location="build/classes" />
+
+            <fileset dir="etc" includes="genjar.properties" />
+            <fileset dir="etc" includes="file.properties" />
+            <fileset dir="src" includes="**/*.png" excludes="**/sawfish-m*.png" />
         </genjar>
     </target>
 
-    <!-- Tests the library file inclusion to jar with duplicate entries -->
-    <target name="test.library.2" depends="init">
-        <genjar destfile="build/lib/${ant.project.name}-L2.jar" index="true">
+    <!-- Tests fileset elements with file attributes -->
+    <target name="test.fileset.2" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class1" />
+            <classpath location="build/classes" />
+            <fileset file="etc/genjar.properties" />
+            <fileset file="etc/file.properties" />
+            <fileset file="src/package1/imagedir1/sawfish-logo.png" />
+        </genjar>
+    </target>
+
+    <!-- Tests zipfileset file inclusion to jar with duplicate entries and jar index creation -->
+    <target name="test.zipfileset.1" depends="init">
+        <genjar destfile="${target-jar}" filesetmanifest="merge">
             <class name="package1.Class3" />
             <classpath location="build/classes" />
             <zipfileset src="etc/test1.zip" />
-            <zipfileset src="etc/test1.jar" />
-        </genjar>
-        <mkdir dir="build/L2" />
-        <unzip src="build/lib/${ant.project.name}-L2.jar" dest="build/L2" />
-    </target>
-
-    <!-- Tests the library directory inclusion to disk -->
-    <target name="test.library.3" depends="init">
-        <mkdir dir="build/L3" />
-        <genjar destdir="build/L3">
-            <fileset dir="build/classes" />
+            <zipfileset src="etc/xbean_xpath.jar" />
         </genjar>
     </target>
 
-    <!-- Tests zipgroupfileset inclusion to disk -->
+    <!-- Tests the zipfileset 'includes' attribute -->
+    <target name="test.zipfileset.2" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class3" />
+            <classpath location="build/classes" />
+            <zipfileset src="etc/xbean_xpath.jar" includes="**/XBeansX*.class" />
+        </genjar>
+    </target>
+
+    <!-- Tests the zipfileset 'excludes' attribute -->
+    <target name="test.zipfileset.3" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class3" />
+            <classpath location="build/classes" />
+            <zipfileset src="etc/xbean_xpath.jar" excludes="**/XBeansX.class" />
+        </genjar>
+    </target>
+
+    <!-- Tests including a required jar using zipfileset. If we're including the 
+         entire jar, the build should succeed even if the jar isn't listed 
+         explicitly in the classpath -->
     <target name="test.zipfileset.4" depends="init">
-        <mkdir dir="build/Z4" />
-        <genjar destdir="build/Z4">
-            <zipgroupfileset dir="etc" includes="test1.zip,test2.jar"/>
+        <genjar destfile="${target-jar}">
+            <class name="package4.Class8" />
+            <classpath location="build/classes" />
+            <zipfileset src="etc/test3.jar" includes="package4/**/*.class" />
         </genjar>
     </target>
 
-    <!-- Tests zipgroupfileset inclusion to jar -->
+    <!-- Tests excluding a required class (even though it's in a jar included via 
+         zipfileset). We expect this build to fail. -->
     <target name="test.zipfileset.5" depends="init">
-        <genjar destfile="build/lib/${ant.project.name}-Z5.jar">
-            <zipgroupfileset dir="etc" includes="test1.zip,test2.jar"/>
+        <genjar destfile="${target-jar}">
+            <class name="package4.Class8" />
+            <classpath location="build/classes" />
+            <zipfileset src="etc/test3.jar" excludes="package4/**/*.class" />
         </genjar>
-        <mkdir dir="build/Z5" />
-        <unzip src="build/lib/${ant.project.name}-Z5.jar" dest="build/Z5" />
     </target>
 
-    <!-- Tests the manifest generation -->
+
+    <!-- Tests zipgroupfileset inclusion -->
+    <target name="test.zipgroupfileset.1" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class3" />
+            <classpath location="build/classes" />
+            <zipgroupfileset dir="etc" includes="test1.zip,test2.jar" />
+        </genjar>
+    </target>
+
+    <!-- Tests zipgroupfileset including a jar with signatures in the manifest -->
+    <target name="test.zipgroupfileset.2" depends="init">
+        <genjar destfile="${target-jar}">
+            <zipgroupfileset dir="etc" includes="test1.zip,xbean_xpath.jar" />
+        </genjar>
+    </target>
+
+    <!-- Tests manifest generation -->
     <target name="test.manifest.1" depends="init">
-        <genjar destfile="build/lib/${ant.project.name}-M1.jar">
+        <genjar destfile="${target-jar}">
             <manifest>
                 <attribute name="Built-By" value="${ant.project.name}" />
                 <attribute name="Extension-name" value="${ant.project.name}" />
             </manifest>
         </genjar>
-        <mkdir dir="build/M1" />
-        <unzip src="build/lib/${ant.project.name}-M1.jar" dest="build/M1" />
     </target>
 
-    <!-- Tests the manifest generation with file and inline -->
+    <!-- Tests manifest inclusion and merging -->
     <target name="test.manifest.2" depends="init">
-        <genjar destfile="build/lib/${ant.project.name}-M2.jar" manifest="etc/MANIFEST.MF">
+        <genjar destfile="${target-jar}" manifest="etc/MANIFEST.MF1">
             <manifest>
                 <attribute name="Built-By2" value="${ant.project.name}2" />
                 <attribute name="Extension-name2" value="${ant.project.name}2" />
             </manifest>
         </genjar>
-        <mkdir dir="build/M2" />
-        <unzip src="build/lib/${ant.project.name}-M2.jar" dest="build/M2" />
     </target>
 
     <!-- Tests that GenJar generated file pass the jarsigner -verify option -->
-    <target name="test.sign.jar" depends="test.library.2">
+    <target name="test.sign.jar" depends="test.zipfileset.1">
         <!--
         <genkey
             alias="genjar"
@@ -282,10 +270,9 @@
 -->
     </target>
 
-    <!-- Tests the classpath resolvers -->
+    <!-- Tests the classpath resolvers, including specifying a jar file with an uppercase suffix -->
     <target name="test.classpath.1" depends="init">
-        <mkdir dir="build/CP1" />
-        <genjar destdir="build/CP1">
+        <genjar destfile="${target-jar}">
             <class name="package1.Class3" />
             <classpath location="etc/test3.JAR" />
         </genjar>
@@ -308,7 +295,7 @@
     </target>
 
     <target name="test.profile" depends="init">
-        <genjar jarfile="etc/test.profile.jar" update="false">
+        <genjar destfile="${target-jar}" update="false">
             <class name="profile.Foo" />
             <class name="profile.A" />
 
@@ -319,14 +306,8 @@
                 <exclude name="profile.A" />
             </classfilter>
 
-            <!-- Replace with fileset and zipfileset -->
             <fileset dir="src" includes="profile/Foo2.java" />
-
             <zipfileset src="lib/jsr173_api.jar" />
-            <!--<fileset dir="src" includes="profile/Foo2.java" />
-            <zipfileset src="../../common/lib/jsr173_api.jar" />-->
-
-            <!-- Replace with zipfileset -->
             <zipfileset src="lib/xmlschema-genjar.jar" />
 
             <manifest>

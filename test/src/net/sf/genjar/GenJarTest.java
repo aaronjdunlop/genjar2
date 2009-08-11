@@ -51,9 +51,15 @@ package net.sf.genjar;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import org.apache.tools.ant.BuildFileTest;
 import org.apache.tools.ant.Project;
@@ -61,17 +67,20 @@ import org.apache.tools.ant.Project;
 /**
  * Description of the Class
  *
- * @author   <a href="mailto:jesse_dev@yahoo.com">Jesse</a>
+ * @author <a href="mailto:jesse_dev@yahoo.com">Jesse</a>
  */
 public class GenJarTest extends BuildFileTest
 {
 
     private Project project;
 
+    private final static String JAR_FILE = "test/build/genjar2-test-tmp.jar";
+    private final static String STATIC_LIST_DIR = "test/etc";
+
     /**
      * Constructor for the SOSTest object
      *
-     * @param s  Test name
+     * @param s Test name
      */
     public GenJarTest(String s)
     {
@@ -84,8 +93,7 @@ public class GenJarTest extends BuildFileTest
      * @throws Exception
      */
     @Override
-    protected void setUp()
-        throws Exception
+    protected void setUp() throws Exception
     {
         project = new Project();
         project.setBasedir(".");
@@ -98,8 +106,7 @@ public class GenJarTest extends BuildFileTest
      * @throws Exception
      */
     @Override
-    protected void tearDown()
-        throws Exception
+    protected void tearDown() throws Exception
     {
         executeTarget("clean");
     }
@@ -107,281 +114,200 @@ public class GenJarTest extends BuildFileTest
     /** Tests */
     public void testBuildExceptions()
     {
-        expectSpecificBuildException("test.ex.1", "some cause", "GenJar: Either a destfile or destdir attribute is required");
-        expectSpecificBuildException("test.ex.2", "some cause", "fileset doesn't support the nested \"fileset\" element.");
-        expectBuildException("test.ex.3", "can't add Fileset - file already set");
-        expectSpecificBuildException("test.ex.4", "some cause", "Cannot set both dir and src attributes");
+        expectSpecificBuildException("test.ex.1", "some cause", "GenJar: destfile attribute is required");
+        expectSpecificBuildException("test.ex.2", "some cause",
+            "fileset doesn't support the nested \"fileset\" element.");
+        expectSpecificBuildException("test.ex.3", "some cause", "Cannot set both dir and src attributes");
     }
 
-    /** Tests */
-    public void testResources1()
-    {
-        executeTarget("test.resource.1");
-        ArrayList<String> genList = getFileList(new File("test/build/R1"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/R1.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
-    }
-
-    /** Tests */
-    public void testResources2()
-    {
-        executeTarget("test.resource.2");
-        ArrayList<String> genList = getFileList(new File("test/build/R2"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/R2.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
-    }
-
-    public void testFileSet1() {
-        executeTarget("test.fileset.1");
-        ArrayList<String> genList = getFileList(new File("test/build/F1"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/F1.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
-    }
-
-    /** Tests */
-    public void testClass1()
+    /**
+     * Tests
+     *
+     * @throws IOException
+     */
+    public void testClass1() throws IOException
     {
         executeTarget("test.class.1");
-        ArrayList<String> genList = getFileList(new File("test/build/CL1"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CL1.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CL1");
     }
 
-    /** Tests */
-    public void testClass2()
+    /**
+     * Tests
+     *
+     * @throws IOException
+     */
+    public void testClass2() throws IOException
     {
         executeTarget("test.class.2");
-        File dir = new File("test/build/CL2");
-        ArrayList<String> genList = getFileList(dir);
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CL2.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CL2");
     }
 
-    /** Tests class dependency building with a fileset in <class> */
-    public void testClass3()
+    /**
+     * Tests class dependency building with a fileset in <class>
+     *
+     * @throws IOException
+     */
+    public void testClass3() throws IOException
     {
         executeTarget("test.class.3");
-        File dir = new File("test/build/CL3");
-        ArrayList<String> genList = getFileList(dir);
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CL3.filelist"));
-
-//        for (Iterator it = genList.iterator(); it.hasNext();) {
-//            System.out.println("gen listing: " + it.next());
-//        }
-//        for (Iterator it = staticList.iterator(); it.hasNext();) {
-//            System.out.println("static listing: " + it.next());
-//        }
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CL3");
     }
 
-    /** Tests class dependency building with inner classes */
-    public void testClass4()
+    /**
+     * Tests class dependency building with inner classes
+     *
+     * @throws IOException
+     */
+    public void testClass4() throws IOException
     {
         executeTarget("test.class.4");
-        File dir = new File("test/build/CL4");
-        ArrayList<String> genList = getFileList(dir);
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CL4.filelist"));
-//
-//        for (Iterator it = genList.iterator(); it.hasNext();) {
-//            System.out.println("gen listing: " + it.next());
-//        }
-//        for (Iterator it = staticList.iterator(); it.hasNext();) {
-//            System.out.println("static listing: " + it.next());
-//        }
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CL4");
     }
 
-    /** Tests class dependency building with inner classes in a jar */
-    public void testClass5()
-    {
-        executeTarget("test.class.5");
-        File dir = new File("test/build/CL5");
-        ArrayList<String> genList = getFileList(dir);
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CL5.filelist"));
-//
-//        for (Iterator it = genList.iterator(); it.hasNext();) {
-//            System.out.println("gen listing: " + it.next());
-//        }
-//        for (Iterator it = staticList.iterator(); it.hasNext();) {
-//            System.out.println("static listing: " + it.next());
-//        }
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
-    }
-
-    /** Tests */
-    public void testClassFilter1()
+    /**
+     * Tests
+     *
+     * @throws IOException
+     */
+    public void testClassFilter1() throws IOException
     {
         executeTarget("test.classfilter.1");
-        ArrayList<String> genList = getFileList(new File("test/build/CF1"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CF1.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CF1");
     }
 
-    /** Tests */
-    public void testClassFilter2()
+    /**
+     * Tests
+     *
+     * @throws IOException
+     */
+    public void testClassFilter2() throws IOException
     {
         executeTarget("test.classfilter.2");
-        ArrayList<String> genList = getFileList(new File("test/build/CF2"));
-
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CF2.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CF2");
     }
 
-    /** Tests */
-    public void testLibrary1()
+    public void testFileSet1() throws IOException
     {
-        executeTarget("test.library.1");
-        ArrayList<String> genList = getFileList(new File("test/build/L1"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/L1.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        executeTarget("test.fileset.1");
+        checkJarfileContents("FS1");
     }
 
-    /** Tests */
-    public void testLibrary2()
+    public void testFileSet2() throws IOException
     {
-        executeTarget("test.library.2");
-        ArrayList<String> genList = getFileList(new File("test/build/L2"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/L2.filelist"));
-
-//        for (Iterator it = genList.iterator(); it.hasNext();) {
-//            System.out.println("gen listing: " + it.next());
-//        }
-//        for (Iterator it = staticList.iterator(); it.hasNext();) {
-//            System.out.println("static listing: " + it.next());
-//        }
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
-
-        ArrayList<String> staticIndexList = readStaticTestFile(new File("test/etc/INDEX.LIST"));
-        ArrayList<String> jarIndexList = readStaticTestFile(new File("test/build/L2/META-INF/INDEX.LIST"));
-
-        assertEquals("Different number of entries in manifest", staticIndexList.size(), jarIndexList.size());
-
-        assertTrue("Incorrect entry in manifest", jarIndexList.containsAll(staticIndexList));
+        executeTarget("test.fileset.2");
+        checkJarfileContents("FS2");
     }
 
-    /** Tests */
-    public void testLibrary3()
+    /**
+     * Tests including multiple zipfilesets with duplicate entries
+     *
+     * @throws IOException
+     */
+    public void testZipfileset1() throws IOException
     {
-        executeTarget("test.library.3");
-        ArrayList<String> genList = getFileList(new File("test/build/L3"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/L3.filelist"));
-
-//        for (Iterator it = genList.iterator(); it.hasNext();) {
-//            System.out.println("gen listing: " + it.next());
-//        }
-//        for (Iterator it = staticList.iterator(); it.hasNext();) {
-//            System.out.println("static listing: " + it.next());
-//        }
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        executeTarget("test.zipfileset.1");
+        checkJarfileContents("Z1");
     }
 
-    public void testZipgroupfilesetToDir()
+    /**
+     * Tests the zipfileset 'includes' attribute
+     *
+     * @throws IOException
+     */
+    public void testZipfileset2() throws IOException
+    {
+        executeTarget("test.zipfileset.2");
+        checkJarfileContents("Z2");
+    }
+
+    /**
+     * Tests the zipfileset 'excludes' attribute
+     *
+     * @throws IOException
+     */
+    public void testZipfileset3() throws IOException
+    {
+        executeTarget("test.zipfileset.3");
+        checkJarfileContents("Z3");
+    }
+
+    /**
+     * Tests including a required jar using zipfileset. If we're including the entire jar, the build
+     * should succeed even if the jar isn't listed explicitly in the classpath
+     *
+     * @throws IOException
+     */
+    public void testZipfileset4() throws IOException
     {
         executeTarget("test.zipfileset.4");
-        ArrayList<String> genList = getFileList(new File("test/build/Z4"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/Z4.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("Z4");
     }
 
-    public void testZipgroupfilesetToJar()
+    /**
+     * Tests excluding a required class (even though it's in a jar included via zipfileset). We
+     * expect this build to fail.
+     *
+     * @throws IOException
+     */
+    public void testZipfileset5() throws IOException
     {
-        executeTarget("test.zipfileset.5");
-        ArrayList<String> genList = getFileList(new File("test/build/Z5"));
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/Z5.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        expectSpecificBuildException("test.zipfileset.5", "Required file excluded",
+            "Jar component not found (package4/jar/Class8_1.class)");
     }
 
-//    public void testManifest1() {
-//        executeTarget("test.manifest.1");
-//        ArrayList manifestList = readStaticTestFile(new File("test/etc/MANIFEST.MF"));
-//        ArrayList jarManifest = readStaticTestFile(new File("test/build/M1/META-INF/MANIFEST.MF"));
-//
-//        for (Iterator it = manifestList.iterator(); it.hasNext();) {
-//            System.out.println("static: " + it.next());
-//        }
-//
-//        for (Iterator it = jarManifest.iterator(); it.hasNext();) {
-//            System.out.println("jar: " + it.next());
-//        }
-//
-//        assertEquals("Different number of entries in manifest", manifestList.size(), jarManifest.size());
-//
-//        assertTrue("Incorrect entry in manifest", jarManifest.containsAll(manifestList));
-//    }
-//
-//    public void testManifest2() {
-//        executeTarget("test.manifest.2");
-//        ArrayList manifestList = readStaticTestFile(new File("test/etc/MANIFEST.MF2"));
-//        ArrayList jarManifest = readStaticTestFile(new File("test/build/M2/META-INF/MANIFEST.MF"));
-//
-//        assertEquals("Different number of entries in manifest", manifestList.size(), jarManifest.size());
-//
-//        assertTrue("Incorrect entry in manifest", jarManifest.containsAll(manifestList));
-//    }
+    public void testZipgroupfileset1() throws IOException
+    {
+        executeTarget("test.zipgroupfileset.1");
+        checkJarfileContents("ZG1");
+    }
+
+    public void testZipgroupfileset2() throws IOException
+    {
+        executeTarget("test.zipgroupfileset.2");
+        checkJarfileContents("ZG2");
+    }
+
+    public void testManifest1() throws IOException
+    {
+        executeTarget("test.manifest.1");
+        checkJarManifest("test/etc/MANIFEST.MF1");
+    }
+
+    public void testManifest2() throws IOException
+    {
+        executeTarget("test.manifest.2");
+        checkJarManifest("test/etc/MANIFEST.MF2");
+    }
+
+    private void checkJarManifest(String staticManifestFile) throws IOException, FileNotFoundException
+    {
+        JarFile jarFile = new JarFile(JAR_FILE);
+        String jarManifest = readInputStream(jarFile.getInputStream(jarFile.getJarEntry("META-INF/MANIFEST.MF")));
+        jarFile.close();
+        String staticManifest = readInputStream(new FileInputStream(staticManifestFile));
+
+        assertEquals(staticManifest, jarManifest);
+    }
 
     // We don't have the appropriate key to sign jars, and don't really care...
-//    /** Tests */
-//    public void testSignJar()
-//    {
-//        expectLogContaining("test.sign.jar", "jar verified.");
-//    }
+    // /** Tests */
+    // public void testSignJar()
+    // {
+    // expectLogContaining("test.sign.jar", "jar verified.");
+    // }
 
-    /** Tests */
-    public void testUpperCaseClasspathEntry()
+    /**
+     * Tests the classpath resolvers, including specifying a jar file with an upper-case suffix
+     *
+     * @throws IOException
+     */
+    public void testUpperCaseClasspathEntry() throws IOException
     {
         executeTarget("test.classpath.1");
-        File dir = new File("test/build/CP1");
-        ArrayList<String> genList = getFileList(dir);
-        ArrayList<String> staticList = readStaticTestFile(new File("test/etc/CP1.filelist"));
-
-        assertEquals("Different number of files", staticList.size(), genList.size());
-
-        assertTrue("Incorrect file in jar", genList.containsAll(staticList));
+        checkJarfileContents("CP1");
     }
 
-    /** Tests */
+    /** Tests file locking */
     public void testFileLocking1()
     {
         executeTarget("test.locking.1");
@@ -395,65 +321,72 @@ public class GenJarTest extends BuildFileTest
         System.out.println("Profiled in " + (System.currentTimeMillis() - startTime) + " ms");
     }
 
-
     // Utility methods
 
-    private ArrayList<String> readStaticTestFile(File file)
+    private String readInputStream(InputStream is) throws IOException
     {
-        ArrayList<String> al = new ArrayList<String>();
-        if (! file.exists())
+        StringBuilder sb = new StringBuilder(1024);
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        for (String line = br.readLine(); line != null; line = br.readLine())
         {
-            fail(file.getPath() + "does not exist");
+            // Convert to the path separators, so the tests will run on Windows as well
+            sb.append(line);
+            sb.append('\n');
         }
-        if (! file.isFile())
-        {
-            fail(file.getPath() + "is not a file");
-        }
-        try
-        {
-            FileInputStream fin = new FileInputStream(file);
-
-            BufferedReader myInput = new BufferedReader(new InputStreamReader(fin));
-            String line;
-            while ((line = myInput.readLine()) != null)
-            {
-                // Convert to the path seperators, so the tests will run n Windows as well
-                al.add(line.replace('/', File.separatorChar));
-            }
-        }
-        catch (IOException ioe)
-        {
-            fail("Error reading file list: " + file.getPath());
-        }
-        return al;
+        br.close();
+        return sb.toString();
     }
 
-    private ArrayList<String> getFileList(File dir)
+    private void checkJarfileContents(String prefix) throws IOException
     {
-        ArrayList<String> al = new ArrayList<String>();
-        if (! dir.exists())
+        // Check the jar file contents
+        Set<String> staticFileList = readFilenames(new FileInputStream(STATIC_LIST_DIR + "/" + prefix + ".filelist"));
+
+        HashSet<String> jarFileList = new HashSet<String>();
+        Set<String> jarIndexList = null;
+        JarFile jarFile = new JarFile(JAR_FILE);
+        for (Enumeration<JarEntry> e = jarFile.entries(); e.hasMoreElements();)
         {
-            fail(dir.getPath() + "does not exist");
-        }
-        if (! dir.isDirectory())
-        {
-            fail(dir.getPath() + "is not a directory");
+            JarEntry jarEntry = e.nextElement();
+            final String name = jarEntry.getName();
+            jarFileList.add(name);
+
+            if (name.equals("META-INF/INDEX.LIST"))
+            {
+                jarIndexList = readFilenames(jarFile.getInputStream(jarEntry));
+            }
         }
 
-        File[] files = dir.listFiles();
-        for (int i = 0, length = files.length; i < length; i++)
+        // Check the jar file contents
+        staticFileList.removeAll(jarFileList);
+        if (staticFileList.size() > 0)
         {
-            if (files[i].isFile())
+            fail("Jar file missing files: " + staticFileList.toString());
+        }
+
+        // Check the index, if present
+        if (jarIndexList != null)
+        {
+            File staticIndexFile = new File(STATIC_LIST_DIR + "/" + prefix + ".index");
+            if (staticIndexFile.exists())
             {
-                al.add(files[i].getPath());
-                continue;
-            }
-            if (files[i].isDirectory())
-            {
-                al.addAll(getFileList(files[i]));
+                Set<String> staticIndexList = readFilenames(new FileInputStream(staticIndexFile));
+                assertEquals("Different number of entries in manifest", staticIndexList.size(), jarIndexList.size());
+                assertTrue("Incorrect entry in manifest", jarIndexList.containsAll(staticIndexList));
             }
         }
-        return al;
+    }
+
+    private Set<String> readFilenames(InputStream is) throws IOException
+    {
+        Set<String> lines = new HashSet<String>();
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        for (String line = br.readLine(); line != null; line = br.readLine())
+        {
+            // Convert to the path separators, so the tests will run on Windows as well
+            lines.add(line.replace('\\', '/'));
+        }
+        br.close();
+        return lines;
     }
 }
-// vi:set ts=4 sw=4:

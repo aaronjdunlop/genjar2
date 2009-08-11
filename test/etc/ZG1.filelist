@@ -1,0 +1,17 @@
+META-INF/INDEX.LIST
+META-INF/MANIFEST.MF
+net/sf/antcontrib/logic/Switch$Case.class
+net/sf/antcontrib/logic/IfTask.class
+net/sf/antcontrib/logic/ForEach.class
+net/sf/antcontrib/logic/Switch.class
+net/sf/antcontrib/logic/TryCatchTask.class
+net/sf/antcontrib/platform/OsFamily.class
+net/sf/antcontrib/property/PropertyCopy.class
+org/apache/tools/ant/taskdefs/Attrib.class
+org/apache/tools/ant/taskdefs/optional/genjar/GenJarTest.class
+package1/Class1.class
+package1/Class2.class
+package1/Class3.class
+package2/Class4.class
+taskdefs.properties
+typedefs.properties

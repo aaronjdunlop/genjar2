@@ -70,16 +70,16 @@ import org.apache.tools.ant.types.PatternSet;
  * </pre>
  * <p>
  *
- * As a class' dependancy lists are generated, each class is checked against a ClassFilter by
+ * As a class' dependency lists are generated, each class is checked against a ClassFilter by
  * calling the <code>include</code> method. This method checks the class name against its list of
  * <i>includes</i> and <i>excludes</i> .
  * </p>
  * <p>
  *
  * If the class name starts with any of the strings in the <i>includes</i> list, the class is
- * included in the jar and its dependancy lists are checked. If the class name starts with any of
+ * included in the jar and its dependency lists are checked. If the class name starts with any of
  * the strings in the <i>excludes</i> list, the class is <b>not</b> included in the jar and the
- * dependancy analysis halts (for that class).
+ * dependency analysis halts (for that class).
  * </p>
  * <p>
  *

@@ -1,0 +1,15 @@
+META-INF/INDEX.LIST
+META-INF/MANIFEST.MF
+net/sf/antcontrib/logic/Switch$Case.class
+net/sf/antcontrib/logic/IfTask.class
+net/sf/antcontrib/logic/ForEach.class
+net/sf/antcontrib/logic/Switch.class
+net/sf/antcontrib/logic/TryCatchTask.class
+net/sf/antcontrib/platform/OsFamily.class
+net/sf/antcontrib/property/PropertyCopy.class
+org/apache/tools/ant/taskdefs/Attrib.class
+org/apache/xmlbeans/impl/xpath/saxon/XBeansIndependentContext.class
+org/apache/xmlbeans/impl/xpath/saxon/XBeansXPath.class
+org/apache/xmlbeans/impl/xquery/saxon/XBeansXQuery.class
+taskdefs.properties
+typedefs.properties

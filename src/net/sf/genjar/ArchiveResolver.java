@@ -48,14 +48,12 @@
  */
 package net.sf.genjar;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.jar.Attributes;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import org.apache.tools.ant.Project;
+import org.apache.tools.ant.types.ZipFileSet;
 
 /**
  * Represents a zip file in the classpath.
@@ -74,27 +72,20 @@ import org.apache.tools.ant.Project;
  * @created February 23, 2003
  * @version $Revision: 1.3 $ $Date: 2003/02/23 18:25:23 $
  */
-class ZipResolver extends PathResolver
+class ArchiveResolver extends BaseResolver
 {
-    private final File file;
     private final ZipFile zip;
-    private final String modified;
 
     /**
      * Constructor for the ZipResolver object
      *
-     * @param f Description of the Parameter
-     * @param log Description of the Parameter
+     * @param fileset Zip or Jar FileSet
      * @throws IOException Description of the Exception
      */
-    ZipResolver(File f, Project project) throws IOException
+    ArchiveResolver(ZipFileSet fileset) throws IOException
     {
-        super(project);
-
-        file = f;
-        zip = new ZipFile(file);
-        modified = formatDate(file.lastModified());
-        project.log("Resolver: " + file, Project.MSG_VERBOSE);
+        super(fileset);
+        zip = new ZipFile(fileset.getSrc());
     }
 
     /**
@@ -122,31 +113,17 @@ class ZipResolver extends PathResolver
      * @throws IOException Description of the Exception
      */
     @Override
-    public InputStream resolve(GenJarEntry spec) throws IOException
+    public InputStream resolve(final String jarEntry) throws IOException
     {
-        InputStream is = null;
-        ZipEntry ze = zip.getEntry(spec.getJarName());
-
-        if (ze != null)
+        if (includedFiles != null && !includedFiles.contains(jarEntry))
         {
-            Attributes atts = spec.getAttributes();
-
-            atts.putValue(CONTENT_LOC, file.getAbsolutePath());
-
-            long modTime = ze.getTime();
-
-            if (modTime > 0)
-            {
-                atts.putValue(LAST_MOD, formatDate(modTime));
-            }
-            else
-            {
-                atts.putValue(LAST_MOD, modified);
-            }
-            is = zip.getInputStream(ze);
-            project.log(spec.getJarName() + "->" + file, Project.MSG_DEBUG);
+            return null;
         }
-        return is;
+        final ZipEntry ze = zip.getEntry(jarEntry);
+        if (ze == null)
+        {
+            return null;
+        }
+        return zip.getInputStream(ze);
     }
 }
-// vi:set ts=4 sw=4:

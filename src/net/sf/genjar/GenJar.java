@@ -48,39 +48,31 @@
  */
 package net.sf.genjar;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
-import java.util.zip.ZipFile;
 
 import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.FileScanner;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Jar;
-import org.apache.tools.ant.taskdefs.Manifest;
-import org.apache.tools.ant.taskdefs.ManifestException;
 import org.apache.tools.ant.types.FileSet;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.types.Reference;
+import org.apache.tools.ant.types.Resource;
+import org.apache.tools.ant.types.ResourceCollection;
 import org.apache.tools.ant.types.ZipFileSet;
-import org.apache.tools.ant.types.resources.FileResource;
+import org.apache.tools.zip.ZipOutputStream;
 
 /**
  * Driver class for the GenJar task.
@@ -95,46 +87,23 @@ import org.apache.tools.ant.types.resources.FileResource;
  */
 public class GenJar extends Jar
 {
-    private final List<ContainedObject> containedObjects = new ArrayList<ContainedObject>(32);
-    private final List<ZipFileSet> zipFileSets = new ArrayList<ZipFileSet>(8);
-    private final List<FileSet> zipGroupFileSets = new ArrayList<FileSet>(8);
+    private final List<RootClass> rootClasses = new ArrayList<RootClass>(32);
+
+    private final List<FileSet> filesets = new ArrayList<FileSet>();
+    private final List<FileSet> groupfilesets = new ArrayList<FileSet>();
 
     private Path classpath = null;
     private ClassFilter classFilter = null;
-    // TODO: Remove destDir functionality? It's not really standard to a jar task.
-    private File destDir = null;
-    private final List<PathResolver> pathResolvers = new LinkedList<PathResolver>();
-    private final Set<String> resolved = new HashSet<String>();
-
-    /** merged manifests added through addConfiguredManifest */
-    private Manifest configuredManifest;
-
-    /** merged manifests added through filesets */
-    private Manifest filesetManifest;
-
-    /**
-     * whether to merge the main section of fileset manifests; value is true if filesetmanifest is
-     * 'merge'
-     */
-    private final boolean mergeManifestsMain = true;
-
-    /** the manifest specified by the 'manifest' attribute * */
-    private Manifest manifest;
-
-    /**
-     * The file found from the 'manifest' attribute. This can be either the location of a manifest,
-     * or the name of a jar added through a fileset. If its the name of an added jar, the manifest
-     * is looked for in META-INF/MANIFEST.MF
-     */
-    private File manifestFile;
+    private final List<BaseResolver> resolvers = new LinkedList<BaseResolver>();
 
     /** jar index is JDK 1.3+ only */
-    private boolean index = false;
+    private boolean index = true;
 
     /** Constructor for the GenJar object */
     public GenJar()
     {
         setTaskName("GenJar");
+        setUpdate(false);
     }
 
     /**
@@ -172,67 +141,15 @@ public class GenJar extends Jar
     }
 
     /**
-     * Sets the name of the directory where the classes will be copied.
-     *
-     * @param path The directory name.
-     */
-    public void setDestDir(Path path)
-    {
-        destDir = getProject().resolveFile(path.toString());
-    }
-
-    /**
-     * The manifest file to use. This can be either the location of a manifest, or the name of a jar
-     * added through a fileset. If its the name of an added jar, the task expects the manifest to be
-     * in the jar at META-INF/MANIFEST.MF.
-     *
-     * TODO: Eliminate local manifest handling?
-     *
-     * @param manifestFile
-     */
-    @Override
-    public void setManifest(File manifestFile)
-    {
-        if (!manifestFile.exists())
-        {
-            throw new BuildException("Manifest file: " + manifestFile + " does not exist.", getLocation());
-        }
-
-        this.manifestFile = manifestFile;
-        super.setManifest(manifestFile);
-    }
-
-    /**
-     * Allows the manifest for the archive file to be provided inline in the build file rather than
-     * in an external file.
-     *
-     * @param newManifest
-     * @throws ManifestException
-     */
-    @Override
-    public void addConfiguredManifest(Manifest newManifest) throws ManifestException
-    {
-        if (configuredManifest == null)
-        {
-            configuredManifest = newManifest;
-        }
-        else
-        {
-            configuredManifest.merge(newManifest);
-        }
-    }
-
-    /**
      * Builds a <class> element.
      *
      * @return A <class> element.
      */
     public RootClass createClass()
     {
-        RootClass cs = new RootClass(getProject());
-
-        containedObjects.add(cs);
-        return cs;
+        RootClass rc = new RootClass(getProject());
+        rootClasses.add(rc);
+        return rc;
     }
 
     /**
@@ -240,7 +157,7 @@ public class GenJar extends Jar
      */
     public void addClass(RootClass rootClass)
     {
-        containedObjects.add(rootClass);
+        rootClasses.add(rootClass);
     }
 
     /**
@@ -249,7 +166,7 @@ public class GenJar extends Jar
     @Override
     public void addFileset(FileSet fs)
     {
-        containedObjects.add(new ContainedFileSet(getProject(), fs));
+        filesets.add(fs);
     }
 
     /**
@@ -258,8 +175,7 @@ public class GenJar extends Jar
     @Override
     public void addZipfileset(ZipFileSet fs)
     {
-        addFileset(fs);
-        zipFileSets.add(fs);
+        filesets.add(fs);
     }
 
     /**
@@ -267,8 +183,7 @@ public class GenJar extends Jar
      */
     public void addZipgroupfileset(FileSet fs)
     {
-//        addFileset(fs);
-        zipGroupFileSets.add(fs);
+        groupfilesets.add(fs);
     }
 
     /**
@@ -302,7 +217,6 @@ public class GenJar extends Jar
      * @throws BuildException Description of the Exception
      */
     @Override
-    @SuppressWarnings("unchecked")
     public void execute() throws BuildException
     {
         long start = System.currentTimeMillis();
@@ -312,14 +226,16 @@ public class GenJar extends Jar
             classFilter = new ClassFilter(getProject());
         }
 
-        getProject().log("GenJar Ver: 0.4.0", Project.MSG_VERBOSE);
-        if ((getDestFile() == null) && (destDir == null))
+        processGroupFilesets();
+
+        getProject().log("GenJar Ver: 2.0.0", Project.MSG_VERBOSE);
+        if (getDestFile() == null)
         {
-            throw new BuildException("GenJar: Either a destfile or destdir attribute is required", getLocation());
+            throw new BuildException("GenJar: destfile attribute is required", getLocation());
         }
 
         //
-        // set up the classpath & resolvers - file/zip
+        // Set up the classpath & resolvers - file/zip
         //
         try
         {
@@ -329,36 +245,17 @@ public class GenJar extends Jar
             }
             if (!classpath.isReference())
             {
-                //
-                // add the system path now - AFTER all other paths are
-                // specified
-                //
+                // Add the system path now - AFTER all other paths are specified
                 classpath.addExisting(Path.systemClasspath);
             }
+
             getProject().log("Initializing Path Resolvers", Project.MSG_VERBOSE);
             getProject().log("Classpath:" + classpath, Project.MSG_VERBOSE);
-            initPathResolvers();
+            initResolvers();
         }
         catch (IOException ioe)
         {
             throw new BuildException("Unable to process classpath: " + ioe, getLocation());
-        }
-
-        try
-        {
-            for (FileSet zipGroupFileSet : zipGroupFileSets)
-            {
-                for (Iterator i = zipGroupFileSet.iterator(); i.hasNext();)
-                {
-                    FileResource fileResource = (FileResource) i.next();
-                    ContainedFileSet cfs = new ContainedFileSet(getProject(), new ZipFile(fileResource.getFile()));
-                    containedObjects.add(cfs);
-                }
-            }
-        }
-        catch (IOException ioe)
-        {
-            throw new BuildException("Unable to process zipgroupfileset(s): " + ioe, getLocation());
         }
 
         //
@@ -369,15 +266,13 @@ public class GenJar extends Jar
         // graphs - when done, getJarEntries() returns a list
         // of all entries generated by this JarSpec
         //
-        Set<GenJarEntry> jarEntrySpecs = new LinkedHashSet<GenJarEntry>();
+        final Set<String> jarEntries = new HashSet<String>();
 
-        for (Iterator<ContainedObject> it = containedObjects.iterator(); it.hasNext();)
+        for (final RootClass rc : rootClasses)
         {
-            ContainedObject js = it.next();
-
             try
             {
-                js.resolve(this);
+                rc.resolve(this);
             }
             catch (IOException ioe)
             {
@@ -388,240 +283,112 @@ public class GenJar extends Jar
             // before adding a new jarspec - see if it already exists
             // first entry added to jar always wins
             //
-            List<GenJarEntry> jarEntries = js.getJarEntries();
-
-            for (Iterator<GenJarEntry> iter = jarEntries.iterator(); iter.hasNext();)
+            for (final String jarEntry : rc.getJarEntries())
             {
-                GenJarEntry spec = iter.next();
-
-                if (!jarEntrySpecs.contains(spec))
+                if (!jarEntries.contains(jarEntry))
                 {
-                    jarEntrySpecs.add(spec);
-                    getProject().log("Adding " + spec.getJarName(), Project.MSG_VERBOSE);
+                    jarEntries.add(jarEntry);
+                    getProject().log("Adding " + jarEntry, Project.MSG_VERBOSE);
                 }
                 else
                 {
-                    getProject().log("Duplicate (ignored): " + spec.getJarName(), Project.MSG_VERBOSE);
+                    getProject().log("Duplicate (ignored): " + jarEntry, Project.MSG_VERBOSE);
                 }
             }
         }
 
-        if (getDestFile() != null)
+        log("Generating jar: " + getDestFile());
+
+        InputStream is = null;
+        ZipOutputStream zOut = null;
+        try
         {
-            log("Generating jar: " + getDestFile());
+            zOut = new ZipOutputStream(zipFile);
 
-            // prep the manifest
-            java.util.jar.Manifest mf;
+            zOut.setEncoding(getEncoding());
+            // Always compress
+            zOut.setMethod(ZipOutputStream.DEFLATED);
+            zOut.setLevel(getLevel());
+            initZipOutputStream(zOut);
 
-            try
+            for (final String jarEntry : jarEntries)
             {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintWriter writer = new PrintWriter(baos);
+                org.apache.tools.zip.ZipEntry entry = new org.apache.tools.zip.ZipEntry(jarEntry);
 
-                if (manifest == null)
+                is = resolveEntry(jarEntry);
+                if (is == null)
                 {
-                    // manifest = Manifest.getDefaultManifest();
-                    manifest = createManifest();
+                    getProject().log("Unable to locate previously resolved resource", Project.MSG_ERR);
+                    getProject().log("       Jar Name:" + jarEntry, Project.MSG_ERR);
+                    throw new BuildException("Jar component not found (" + jarEntry + ')', getLocation());
                 }
-                else
+                zOut.putNextEntry(entry);
+
+                final byte[] buf = new byte[4096];
+                for (int read = is.read(buf); read != -1; read = is.read(buf))
                 {
-                    for (Enumeration<String> e = manifest.getWarnings(); e.hasMoreElements();)
-                    {
-                        log("Manifest warning: " + e.nextElement(), Project.MSG_WARN);
-                    }
+                    zOut.write(buf, 0, read);
                 }
-                manifest.write(writer);
-                writer.flush();
+                zOut.closeEntry();
+                is.close();
 
-                ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-
-                mf = new java.util.jar.Manifest(bais);
-            }
-            catch (IOException ioe)
-            {
-                throw new BuildException("Error creating the manifest: ", ioe, getLocation());
+                getProject().log("Added: " + jarEntry, Project.MSG_VERBOSE);
             }
 
-            JarOutputStream jout = null;
-            InputStream is = null;
+            // Add resources (fileset, zipfileset, zipgroupfileset, etc). Code stolen from Ant's Zip
+            // task
+            final ResourceCollection[] fss = filesets.toArray(new ResourceCollection[filesets.size()]);
+            final ArchiveState state = getResourcesToAdd(fss, zipFile, false);
+            final Resource[][] addThem = state.getResourcesToAdd();
 
-            try
+            // Add the explicit resource collections to the archive.
+            for (int i = 0; i < fss.length; i++)
             {
-                jout = new JarOutputStream(new FileOutputStream(getDestFile()), mf);
-
-                for (Iterator<GenJarEntry> it = jarEntrySpecs.iterator(); it.hasNext();)
+                if (addThem[i].length != 0)
                 {
-                    GenJarEntry jes = it.next();
-                    JarEntry entry = new JarEntry(jes.getJarName());
-
-                    is = resolveEntry(jes);
-
-                    if (is == null)
-                    {
-                        getProject().log("Unable to locate previously resolved resource", Project.MSG_ERR);
-                        getProject().log("       Jar Name:" + jes.getJarName(), Project.MSG_ERR);
-                        getProject().log(" Resoved Source:" + jes.getSourceFile(), Project.MSG_ERR);
-                        try
-                        {
-                            jout.close();
-                        }
-                        catch (IOException ioe)
-                        {}
-                        throw new BuildException("Jar component not found (" + jes.getJarName() + ')', getLocation());
-                    }
-                    jout.putNextEntry(entry);
-
-                    byte[] buff = new byte[4096];
-                    int len;
-
-                    while ((len = is.read(buff, 0, buff.length)) != -1)
-                    {
-                        jout.write(buff, 0, len);
-                    }
-                    jout.closeEntry();
-                    is.close();
-
-                    getProject().log("Added: " + jes.getJarName(), Project.MSG_VERBOSE);
-                }
-
-                if (index)
-                {
-                    addIndexList(jout, jarEntrySpecs);
+                    addResources(fss[i], addThem[i], zOut);
                 }
             }
-            catch (FileNotFoundException fnfe)
+
+            // Add an index list to the jar if it was requested
+            if (index)
             {
-                throw new BuildException("Unable to access jar file (" + getDestFile() + ") msg:", fnfe, getLocation());
+                addIndexList(zOut, jarEntries);
             }
-            catch (IOException ioe)
-            {
-                throw new BuildException("Unable to create jar: " + ioe.getMessage(), ioe, getLocation());
-            }
-            finally
-            {
-                try
-                {
-                    if (is != null)
-                    {
-                        is.close();
-                    }
-                }
-                catch (IOException ioe)
-                {}
-                try
-                {
-                    if (jout != null)
-                    {
-                        jout.close();
-                    }
-                }
-                catch (IOException ioe)
-                {}
-            }
-            log("Jar Generated (" + (System.currentTimeMillis() - start) + " ms)");
         }
-
-        // Destdir has been specified, so try to generate the dependencies on disk
-        if (destDir != null)
+        catch (FileNotFoundException fnfe)
         {
-            log("Generating class structure in " + destDir);
-            if (destDir != null && !destDir.isDirectory())
-            {
-                throw new BuildException("Destination directory \"" + destDir + "\" does not exist "
-                    + "or is not a directory", getLocation());
-            }
-
-            FileOutputStream fileout = null;
-            InputStream is = null;
-
+            throw new BuildException("Unable to access jar file (" + getDestFile() + ") msg:", fnfe, getLocation());
+        }
+        catch (IOException ioe)
+        {
+            throw new BuildException("Unable to create jar: " + ioe.getMessage(), ioe, getLocation());
+        }
+        finally
+        {
             try
             {
-                for (GenJarEntry jes : jarEntrySpecs)
+                if (is != null)
                 {
-                    String classname = jes.getJarName();
-                    int i = classname.lastIndexOf("/");
-                    String path = "";
-
-                    if (i > 0)
-                    {
-                        path = classname.substring(0, i);
-                    }
-                    classname = classname.substring(i + 1);
-
-                    File filepath = new File(destDir, path);
-
-                    if (!filepath.exists())
-                    {
-                        if (!filepath.mkdirs())
-                        {
-                            throw new BuildException("Unable to create directory " + filepath.getAbsolutePath(),
-                                getLocation());
-                        }
-                    }
-
-                    File classfile = new File(filepath, classname);
-
-                    getProject().log("Writing: " + classfile.getAbsolutePath(), Project.MSG_DEBUG);
-                    fileout = new FileOutputStream(classfile);
-                    is = resolveEntry(jes);
-
-                    if (is == null)
-                    {
-                        getProject().log("Unable to locate previously resolved resource", Project.MSG_ERR);
-                        getProject().log("       Jar Name:" + jes.getJarName(), Project.MSG_ERR);
-                        getProject().log(" Resoved Source:" + jes.getSourceFile(), Project.MSG_ERR);
-                        try
-                        {
-                            fileout.close();
-                        }
-                        catch (IOException ioe)
-                        {}
-                        throw new BuildException("File not found (" + jes.getJarName() + ')', getLocation());
-                    }
-
-                    byte[] buff = new byte[4096];
-                    int len;
-
-                    while ((len = is.read(buff, 0, buff.length)) != -1)
-                    {
-                        fileout.write(buff, 0, len);
-                    }
-                    fileout.close();
                     is.close();
-
-                    getProject().log("Wrote: " + classfile.getName(), Project.MSG_VERBOSE);
                 }
             }
             catch (IOException ioe)
+            {}
+            try
             {
-                throw new BuildException("Unable to write classes ", ioe, getLocation());
-            }
-            finally
-            {
-                try
+                if (zOut != null)
                 {
-                    if (is != null)
-                    {
-                        is.close();
-                    }
+                    zOut.close();
                 }
-                catch (IOException ioe)
-                {}
-                try
-                {
-                    if (fileout != null)
-                    {
-                        fileout.close();
-                    }
-                }
-                catch (IOException ioe)
-                {}
             }
-            log("Class Structure Generated (" + (System.currentTimeMillis() - start) + " ms)");
+            catch (IOException ioe)
+            {}
         }
+        log("Jar Generated (" + (System.currentTimeMillis() - start) + " ms)");
 
         // Close all the resolvers
-        for (PathResolver resolver : pathResolvers)
+        for (BaseResolver resolver : resolvers)
         {
             resolver.close();
         }
@@ -630,17 +397,15 @@ public class GenJar extends Jar
     /**
      * Description of the Method
      *
-     * @param spec Description of the Parameter
+     * @param jarEntry Description of the Parameter
      * @return Description of the Return Value
      * @throws IOException Description of the Exception
      */
-    InputStream resolveEntry(GenJarEntry spec) throws IOException
+    private InputStream resolveEntry(String jarEntry) throws IOException
     {
-        InputStream is = null;
-
-        for (PathResolver resolver : pathResolvers)
+        for (BaseResolver resolver : resolvers)
         {
-            is = resolver.resolve(spec);
+            final InputStream is = resolver.resolve(jarEntry);
             if (is != null)
             {
                 return is;
@@ -660,83 +425,21 @@ public class GenJar extends Jar
      * @param jarEntrySpecs List of <code>JarEntrySpec</code>s used as a list of class names from
      *            which to start.
      */
-    void generateDependancies(List<GenJarEntry> jarEntrySpecs)
+    void generateDependancies(Collection<String> jarEntries)
     {
-        List<String> dependants = generateClassDependancies(jarEntrySpecs.iterator());
-
-        for (Iterator<String> it = dependants.iterator(); it.hasNext();)
-        {
-            jarEntrySpecs.add(new GenJarEntry(it.next(), null));
-        }
+        jarEntries.addAll(generateClassDependencies(jarEntries));
     }
-
-    private Manifest getManifest()
-    {
-
-        Manifest newManifest = null;
-        Reader r = null;
-
-        try
-        {
-            r = new FileReader(manifestFile);
-            newManifest = getManifest(r);
-        }
-        catch (IOException e)
-        {
-            throw new BuildException("Unable to read manifest file: " + manifestFile + " (" + e.getMessage() + ")", e);
-        }
-        finally
-        {
-            if (r != null)
-            {
-                try
-                {
-                    r.close();
-                }
-                catch (IOException e)
-                {
-                    // do nothing
-                }
-            }
-        }
-        return newManifest;
-    }
-
-    private Manifest getManifest(Reader r)
-    {
-
-        Manifest newManifest = null;
-
-        try
-        {
-            newManifest = new Manifest(r);
-        }
-        catch (ManifestException e)
-        {
-            log("Manifest is invalid: " + e.getMessage(), Project.MSG_ERR);
-            throw new BuildException("Invalid Manifest: " + manifestFile, e, getLocation());
-        }
-        catch (IOException e)
-        {
-            throw new BuildException("Unable to read manifest file" + " (" + e.getMessage() + ")", e);
-        }
-        return newManifest;
-    }
-
-    //
-    // TODO: path resolution needs to move to its own class
-    //
 
     /**
-     * Iterate through the classpath and create an array of all the <code>PathResolver</code> s
+     * Iterate through the classpath and create an array of all the {@link BaseResolver}s
      *
      * @throws IOException Description of the Exception
      */
-    private void initPathResolvers() throws IOException
+    private void initResolvers() throws IOException
     {
         String[] classpathEntries = classpath.list();
 
-        for (String entry : classpathEntries)
+        for (final String entry : classpathEntries)
         {
             final File f = new File(entry);
 
@@ -748,11 +451,17 @@ public class GenJar extends Jar
             final String suffix = entry.substring(entry.length() - 4);
             if (suffix.equalsIgnoreCase(".jar") || suffix.equalsIgnoreCase(".zip"))
             {
-                pathResolvers.add(new ZipResolver(f, getProject()));
+                ZipFileSet zfs = new ZipFileSet();
+                zfs.setSrc(f);
+                zfs.setProject(getProject());
+                resolvers.add(new ArchiveResolver(zfs));
             }
             else if (f.isDirectory())
             {
-                pathResolvers.add(new FileResolver(f, getProject()));
+                FileSet fs = new FileSet();
+                fs.setDir(f);
+                fs.setProject(getProject());
+                resolvers.add(new FileResolver(fs));
             }
             else
             {
@@ -760,16 +469,15 @@ public class GenJar extends Jar
             }
         }
 
-        for (ZipFileSet zipFileSet : zipFileSets)
+        for (final FileSet fs : filesets)
         {
-            pathResolvers.add(new ZipResolver(zipFileSet.getSrc(), getProject()));
-        }
-
-        for (FileSet fileSet : zipGroupFileSets)
-        {
-            for (String filename : fileSet.getDirectoryScanner().getIncludedFiles())
+            if (fs instanceof ZipFileSet)
             {
-                pathResolvers.add(new ZipResolver(new File(fileSet.getDir(), filename), getProject()));
+                resolvers.add(new ArchiveResolver((ZipFileSet) fs));
+            }
+            else
+            {
+                resolvers.add(new FileResolver(fs));
             }
         }
     }
@@ -781,20 +489,18 @@ public class GenJar extends Jar
      * @return A List of all the class dependencies.
      */
     @SuppressWarnings("unchecked")
-    private List<String> generateClassDependancies(Iterator<GenJarEntry> it)
+    private Set<String> generateClassDependencies(Collection<String> jarEntries)
     {
-        Analyzer ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList());
-
+        final Analyzer ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList());
         ga.addClassPath(classpath);
 
-        while (it.hasNext())
-        {
-            GenJarEntry js = it.next();
-            String classname = js.getJarName();
+        final Set<String> resolvedClasses = new HashSet<String>();
 
-            if (!resolved.contains(classname))
+        for (String classname : jarEntries)
+        {
+            if (!resolvedClasses.contains(classname))
             {
-                resolved.add(classname);
+                resolvedClasses.add(classname);
 
                 // Ant's analyzer framework adds the .class, so strip it here
                 if (classname.endsWith(".class"))
@@ -805,15 +511,13 @@ public class GenJar extends Jar
             }
         }
 
-        LinkedList<String> deps = new LinkedList<String>();
-        Enumeration<String> e = ga.getClassDependencies();
+        final Set<String> deps = new HashSet<String>();
+        final Enumeration<String> e = ga.getClassDependencies();
 
         while (e.hasMoreElements())
         {
-            String dep = e.nextElement();
-
             // Now convert back to / and add .class
-            deps.add(dep.replace('.', '/') + ".class");
+            deps.add(e.nextElement().replace('.', '/') + ".class");
         }
         return deps;
     }
@@ -827,126 +531,81 @@ public class GenJar extends Jar
      *
      * Based on code from ant's Jar task.
      *
-     * @param jout An opened JarOutPutStream to write to index file to.
-     * @param jarEntrySpecs A list of all the entried in the jar.
+     * @param zOut An opened JarOutPutStream to write to index file to.
+     * @param jarEntries A list of all the entried in the jar.
      * @throws IOException thrown if there is an error while creating the index and adding it to the
      *             zip stream.
      */
-    private void addIndexList(JarOutputStream jout, Set<GenJarEntry> jarEntrySpecs) throws IOException
+    private void addIndexList(final ZipOutputStream zOut, final Set<String> jarEntries) throws IOException
     {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        zOut.putNextEntry(new org.apache.tools.zip.ZipEntry("META-INF/INDEX.LIST"));
+
         // encoding must be UTF8 as specified in the specs.
-        PrintWriter writer = new PrintWriter(new OutputStreamWriter(baos, "UTF8"));
+        final PrintWriter writer = new PrintWriter(new OutputStreamWriter(zOut, "UTF8"));
 
         // version-info blankline
-        writer.println("JarIndex-Version: 1.0");
+        writer.println("JarIndex-Version: 1.0\n");
         writer.println();
 
         // header newline
         writer.println(getDestFile().getName());
 
-        LinkedList<String> entryDirs = new LinkedList<String>();
+        final Set<String> directoriesAlreadyAdded = new HashSet<String>();
 
-        for (Iterator<GenJarEntry> it = jarEntrySpecs.iterator(); it.hasNext();)
+        for (final String jarEntry : jarEntries)
         {
-            GenJarEntry spec = it.next();
-            String entry = spec.getJarName();
+            String path = jarEntry.replace('\\', '/');
 
-            entry = entry.replace('\\', '/');
-
-            int pos = entry.lastIndexOf('/');
-
-            if (pos != -1)
-            {
-                entry = entry.substring(0, pos);
-            }
-            else
+            final int pos = path.lastIndexOf('/');
+            if (pos == -1)
             {
                 // Class is in root and can be ignored? maybe?
                 continue;
             }
+
             // looks like nothing from META-INF should be added
             // and the check is not case insensitive.
             // see sun.misc.JarIndex
-            if (entry.startsWith("META-INF"))
+            if (path.startsWith("META-INF"))
             {
                 continue;
             }
-            // Only add the path once
-            if (!entryDirs.contains(entry))
-            {
-                entryDirs.add(entry);
-            }
-        }
 
-        for (Iterator<String> it = entryDirs.iterator(); it.hasNext();)
-        {
-            writer.println(it.next());
+            path = path.substring(0, pos);
+
+            // Only add the path once
+            if (!directoriesAlreadyAdded.contains(path))
+            {
+                writer.println(path);
+                directoriesAlreadyAdded.add(path);
+            }
         }
 
         writer.flush();
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        JarEntry entry = new JarEntry("META-INF/INDEX.LIST");
-
-        jout.putNextEntry(entry);
-
-        byte[] buff = new byte[4096];
-        int len;
-
-        while ((len = bais.read(buff, 0, buff.length)) != -1)
-        {
-            jout.write(buff, 0, len);
-        }
-        jout.closeEntry();
+        zOut.closeEntry();
     }
 
-    // Some Manifest code borrowed from Ant's jar task
-
-    private Manifest createManifest() throws BuildException
+    /**
+     * Stolen verbatim from Ant's Jar task, since this method is private and can't be called from
+     * genjar
+     */
+    private void processGroupFilesets()
     {
-        try
+        // Add the files found in the groupfileset to filesets
+        for (final FileSet fs : groupfilesets)
         {
-            Manifest finalManifest = Manifest.getDefaultManifest();
+            log("Processing groupfileset ", Project.MSG_VERBOSE);
+            final FileScanner scanner = fs.getDirectoryScanner(getProject());
+            final File basedir = scanner.getBasedir();
 
-            if (manifest == null)
+            for (final String filename : scanner.getIncludedFiles())
             {
-                if (manifestFile != null)
-                {
-                    // if we haven't got the manifest yet, attempt to
-                    // get it now and have manifest be the final merge
-                    manifest = getManifest();
-                    finalManifest.merge(filesetManifest);
-                    finalManifest.merge(configuredManifest);
-                    finalManifest.merge(manifest, !mergeManifestsMain);
-                }
-                else if (configuredManifest != null)
-                {
-                    // configuredManifest is the final merge
-                    finalManifest.merge(filesetManifest);
-                    finalManifest.merge(configuredManifest, !mergeManifestsMain);
-                }
-                else if (filesetManifest != null)
-                {
-                    // filesetManifest is the final (and only) merge
-                    finalManifest.merge(filesetManifest, !mergeManifestsMain);
-                }
+                log("Adding file " + filename + " to fileset", Project.MSG_VERBOSE);
+                final ZipFileSet zf = new ZipFileSet();
+                zf.setProject(getProject());
+                zf.setSrc(new File(basedir, filename));
+                filesets.add(zf);
             }
-            else
-            {
-                // manifest is the final merge
-                finalManifest.merge(filesetManifest);
-                finalManifest.merge(configuredManifest);
-                finalManifest.merge(manifest, !mergeManifestsMain);
-            }
-
-            return finalManifest;
-        }
-        catch (ManifestException e)
-        {
-            log("Manifest is invalid: " + e.getMessage(), Project.MSG_ERR);
-            throw new BuildException("Invalid Manifest", e, getLocation());
         }
     }
 }
-// vi:set ts=4 sw=4:

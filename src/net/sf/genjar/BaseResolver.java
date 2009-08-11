@@ -50,11 +50,9 @@ package net.sf.genjar;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.util.HashSet;
 
-import org.apache.tools.ant.Project;
+import org.apache.tools.ant.types.FileSet;
 
 /**
  * A PathResolver is used for each component of the classpath.</p>
@@ -82,79 +80,40 @@ import org.apache.tools.ant.Project;
  * @created February 23, 2003
  * @version $Revision: 1.3 $ $Date: 2003/02/23 18:25:23 $
  */
-abstract class PathResolver
+abstract class BaseResolver
 {
-    /** name of attribute for content's original location (path) */
-    final static String CONTENT_LOC = "Content-Location";
-    /** name of attribute for original content's modification time */
-    final static String LAST_MOD = "Last-Modified";
-    /** format string for RFC1123 date */
-    final static String RFC1123 = "EEE, dd MMM yyyy HH:mm:ss zzz";
-    private static SimpleDateFormat dateFmt = null;
-
-    protected final Project project;
+    /** Null if no patterns are set on the fileset */
+    protected HashSet<String> includedFiles;
 
     /**
      * Constructor for the PathResolver object
      *
      * @param log Description of the Parameter
      */
-    PathResolver(Project project)
+    protected BaseResolver(FileSet fileset)
     {
-        this.project = project;
-
-        if (dateFmt == null)
+        if (fileset.hasPatterns())
         {
-            dateFmt = new SimpleDateFormat(RFC1123, Locale.getDefault());
-            //
-            // true conformance to rfc1123 would have us using GMT
-            // rather than local time - this doesn;t make sense to
-            // me since the biggest reason to use the time stamps
-            // is to compare against the source files - which are in
-            // local time
-            //
-            /*
-             * dateFmt.setTimeZone( TimeZone.getTimeZone( "GMT" ) );
-             */
+            includedFiles = new HashSet<String>();
+            for (final String filename : fileset.getDirectoryScanner(fileset.getProject()).getIncludedFiles())
+            {
+                includedFiles.add(filename.replaceAll("\\\\", "/"));
+            }
         }
-    }
-
-    /**
-     * Formats a date compatable with RFC1123. Well, close anyway. To be truly conformant the time
-     * zone would always be GMT. This formats the date in local time.
-     *
-     * @param d Description of the Parameter
-     * @return String representation of the date
-     */
-    protected String formatDate(Date d)
-    {
-        return dateFmt.format(d);
-    }
-
-    /**
-     * Description of the Method
-     *
-     * @param l Description of the Parameter
-     * @return Description of the Return Value
-     */
-    protected String formatDate(long l)
-    {
-        return formatDate(new Date(l));
     }
 
     /**
      * Given a JarEntrySpec, a path to the actual resource is generated and an input stream is
      * returned on the path.
      *
-     * @param je Description of the Parameter
+     * @param jarEntry entry (class or resource) to be resolved
      * @return IOStream opened on the file referenced
      * @exception IOException if any errors are encountered
      */
-    abstract InputStream resolve(GenJarEntry je) throws IOException;
+    protected abstract InputStream resolve(String jarEntry) throws IOException;
 
     /**
      * Closes any resources opened by the resolver.
      */
-    abstract void close();
+    protected abstract void close();
 }
-// vi:set ts=4 sw=4:

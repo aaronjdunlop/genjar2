@@ -1,0 +1,16 @@
+net/sf/antcontrib/logic/Switch$Case.class
+net/sf/antcontrib/logic/IfTask.class
+net/sf/antcontrib/logic/ForEach.class
+net/sf/antcontrib/logic/Switch.class
+net/sf/antcontrib/logic/TryCatchTask.class
+net/sf/antcontrib/platform/OsFamily.class
+net/sf/antcontrib/property/PropertyCopy.class
+org/apache/tools/ant/taskdefs/Attrib.class
+package1/Class1.class
+package1/Class2.class
+package1/Class3.class
+package2/Class4.class
+typedefs.properties
+META-INF/MANIFEST.MF
+META-INF/INDEX.LIST
+taskdefs.properties
