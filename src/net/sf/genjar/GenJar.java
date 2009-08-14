@@ -297,24 +297,34 @@ public class GenJar extends Jar
             }
         }
 
+        if (zipFile.exists())
+        {
+            zipFile.delete();
+        }
+
         log("Generating jar: " + getDestFile());
 
         InputStream is = null;
         ZipOutputStream zOut = null;
         try
         {
-            zOut = new ZipOutputStream(zipFile);
+            // Find the resources (fileset, zipfileset, zipgroupfileset, etc) that we're going to
+            // add. Code stolen from Ant's Zip task
+            final ResourceCollection[] fss = filesets.toArray(new ResourceCollection[filesets.size()]);
+            final ArchiveState state = getResourcesToAdd(fss, zipFile, false);
+            final Resource[][] addThem = state.getResourcesToAdd();
 
+
+            // Create the jar file
+            zOut = new ZipOutputStream(zipFile);
             zOut.setEncoding(getEncoding());
-            // Always compress
             zOut.setMethod(ZipOutputStream.DEFLATED);
             zOut.setLevel(getLevel());
             initZipOutputStream(zOut);
 
+            final byte[] buf = new byte[16384];
             for (final String jarEntry : jarEntries)
             {
-                org.apache.tools.zip.ZipEntry entry = new org.apache.tools.zip.ZipEntry(jarEntry);
-
                 is = resolveEntry(jarEntry);
                 if (is == null)
                 {
@@ -322,9 +332,8 @@ public class GenJar extends Jar
                     getProject().log("       Jar Name:" + jarEntry, Project.MSG_ERR);
                     throw new BuildException("Jar component not found (" + jarEntry + ')', getLocation());
                 }
-                zOut.putNextEntry(entry);
+                zOut.putNextEntry(new org.apache.tools.zip.ZipEntry(jarEntry));
 
-                final byte[] buf = new byte[4096];
                 for (int read = is.read(buf); read != -1; read = is.read(buf))
                 {
                     zOut.write(buf, 0, read);
@@ -334,12 +343,6 @@ public class GenJar extends Jar
 
                 getProject().log("Added: " + jarEntry, Project.MSG_VERBOSE);
             }
-
-            // Add resources (fileset, zipfileset, zipgroupfileset, etc). Code stolen from Ant's Zip
-            // task
-            final ResourceCollection[] fss = filesets.toArray(new ResourceCollection[filesets.size()]);
-            final ArchiveState state = getResourcesToAdd(fss, zipFile, false);
-            final Resource[][] addThem = state.getResourcesToAdd();
 
             // Add the explicit resource collections to the archive.
             for (int i = 0; i < fss.length; i++)
@@ -413,11 +416,6 @@ public class GenJar extends Jar
         }
         return null;
     }
-
-    // =====================================================================
-    // TODO: class dependency determination needs to move to either its own
-    // class or to ClassSpec
-    // =====================================================================
 
     /**
      * Generates a list of all classes upon which the list of classes depend.
