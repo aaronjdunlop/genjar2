@@ -28,8 +28,7 @@ import org.apache.bcel.classfile.JavaClass;
 import org.apache.tools.ant.util.depend.AbstractAnalyzer;
 
 /**
- * An analyzer capable fo traversing all class - class relationships.
- *
+ * Copy of Ant's FullAnalyzer in genjar namespace so we won't have to have Ant's BCEL jar in classpath
  */
 public class FullAnalyzer extends AbstractAnalyzer {
     /**
@@ -56,6 +55,7 @@ public class FullAnalyzer extends AbstractAnalyzer {
      *      depencency classes.
      */
     @Override
+    @SuppressWarnings("unchecked")
     protected void determineDependencies(Vector files, Vector classes) {
         // we get the root classes and build up a set of
         // classes upon which they depend

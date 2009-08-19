@@ -64,6 +64,8 @@ import java.util.jar.JarFile;
 import org.apache.tools.ant.BuildFileTest;
 import org.apache.tools.ant.Project;
 
+import xeus.jcl.JarClassLoader;
+
 /**
  * Description of the Class
  *
@@ -74,7 +76,8 @@ public class GenJarTest extends BuildFileTest
 
     private Project project;
 
-    private final static String JAR_FILE = "test/build/genjar2-test-tmp.jar";
+    private final static String JAR_DIR = "test/build";
+    private final static String JAR_FILE = JAR_DIR + "/genjar2-test-tmp.jar";
     private final static String STATIC_LIST_DIR = "test/etc";
 
     /**
@@ -235,12 +238,25 @@ public class GenJarTest extends BuildFileTest
      * Tests including a required jar using zipfileset. If we're including the entire jar, the build
      * should succeed even if the jar isn't listed explicitly in the classpath
      *
-     * @throws IOException
+     * @throws Exception
      */
-    public void testZipfileset4() throws IOException
+    public void testZipfileset4() throws Exception
     {
         executeTarget("test.zipfileset.4");
         checkJarfileContents("Z4");
+
+        // Verify that we can load a class that should be in the packaged jar
+        JarClassLoader jcl = new JarClassLoader();
+
+        jcl.add(JAR_DIR);
+        try
+        {
+            jcl.loadClass("package4.jar.Class8_1");
+        }
+        catch (Throwable t)
+        {
+            fail("Unable to load class package4.jar.Class8_1: " + t.getMessage());
+        }
     }
 
     /**
@@ -311,6 +327,12 @@ public class GenJarTest extends BuildFileTest
     public void testFileLocking1()
     {
         executeTarget("test.locking.1");
+    }
+
+    /** Tests building genjar.jar */
+    public void testGenjarJar()
+    {
+        executeTarget("test.genjar.jar");
     }
 
     /** Profiles execution speed */

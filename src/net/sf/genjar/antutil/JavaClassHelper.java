@@ -27,8 +27,7 @@ import org.apache.bcel.classfile.JavaClass;
 
 // CheckStyle:HideUtilityClassConstructorCheck OFF - bc
 /**
- * Helper class that filters constants from a Java Class
- *
+ * Copy of Ant's JavaClassHelper in genjar namespace so we won't have to have Ant's BCEL jar in classpath
  */
 public final class JavaClassHelper {
     /** System specific line separator. */

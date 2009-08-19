@@ -51,7 +51,8 @@ package net.sf.genjar;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+
+import net.sf.genjar.zip.ZipEntry;
 
 import org.apache.tools.ant.types.FileSet;
 
@@ -106,7 +107,7 @@ class FileResolver extends BaseResolver
      * @exception IOException if opening the stream fails
      */
     @Override
-    public InputStream resolve(final String jarEntry) throws IOException
+    public ZipEntry resolve(final String jarEntry) throws IOException
     {
         if (includedFiles != null && !includedFiles.contains(jarEntry))
         {
@@ -117,6 +118,6 @@ class FileResolver extends BaseResolver
         {
             return null;
         }
-        return new FileInputStream(f);
+        return new ZipEntry(jarEntry, new FileInputStream(f), false);
     }
 }

@@ -27,9 +27,7 @@ import org.apache.bcel.classfile.JavaClass;
 import org.apache.tools.ant.util.depend.AbstractAnalyzer;
 
 /**
- * A dependency analyzer which returns superclass and superinterface
- * dependencies.
- *
+ * Copy of Ant's AncestorAnalyzer in genjar namespace so we won't have to have Ant's BCEL jar in classpath
  */
 public class AncestorAnalyzer extends AbstractAnalyzer {
 
@@ -57,6 +55,7 @@ public class AncestorAnalyzer extends AbstractAnalyzer {
      *      depencency classes.
      */
     @Override
+    @SuppressWarnings("unchecked")
     protected void determineDependencies(Vector files, Vector classes) {
         // we get the root classes and build up a set of
         // classes upon which they depend

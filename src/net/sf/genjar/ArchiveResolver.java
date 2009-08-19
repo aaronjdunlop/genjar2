@@ -49,9 +49,9 @@
 package net.sf.genjar;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+
+import net.sf.genjar.zip.ZipEntry;
+import net.sf.genjar.zip.ZipFile;
 
 import org.apache.tools.ant.types.ZipFileSet;
 
@@ -113,17 +113,20 @@ class ArchiveResolver extends BaseResolver
      * @throws IOException Description of the Exception
      */
     @Override
-    public InputStream resolve(final String jarEntry) throws IOException
+    public ZipEntry resolve(final String jarEntry) throws IOException
     {
         if (includedFiles != null && !includedFiles.contains(jarEntry))
         {
             return null;
         }
-        final ZipEntry ze = zip.getEntry(jarEntry);
+        final java.util.zip.ZipEntry ze = zip.getEntry(jarEntry);
         if (ze == null)
         {
             return null;
         }
-        return zip.getInputStream(ze);
+
+        ZipEntry compressedZe = new ZipEntry(ze, true);
+        compressedZe.setInputStream(zip.getInputStream(compressedZe));
+        return compressedZe;
     }
 }

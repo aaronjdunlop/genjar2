@@ -30,11 +30,11 @@ import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 
 /**
- * A BCEL visitor implementation to collect class dependency information
- *
+ * Copy of Ant's DependencyVisitor in genjar namespace so we won't have to have Ant's BCEL jar in classpath
  */
 public class DependencyVisitor extends EmptyVisitor {
     /** The collectd dependencies */
+    @SuppressWarnings("unchecked")
     private final Hashtable dependencies = new Hashtable();
     /**
      * The current class's constant pool - used to determine class names
@@ -48,6 +48,7 @@ public class DependencyVisitor extends EmptyVisitor {
      * @return a Enumeration of classnames, being the classes upon which the
      *      visited classes depend.
      */
+    @SuppressWarnings("unchecked")
     public Enumeration getDependencies() {
         return dependencies.keys();
     }
@@ -63,6 +64,7 @@ public class DependencyVisitor extends EmptyVisitor {
      * @param constantPool the constant pool of the class being visited.
      */
     @Override
+    @SuppressWarnings("hiding")
     public void visitConstantPool(ConstantPool constantPool) {
         this.constantPool = constantPool;
     }
@@ -164,6 +166,7 @@ public class DependencyVisitor extends EmptyVisitor {
      *
      * @param classname the class to be added to the list of dependencies.
      */
+    @SuppressWarnings("unchecked")
     void addClass(String classname) {
         dependencies.put(classname, classname);
     }

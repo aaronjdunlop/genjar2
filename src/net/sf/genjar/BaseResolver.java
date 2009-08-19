@@ -49,8 +49,9 @@
 package net.sf.genjar;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashSet;
+
+import net.sf.genjar.zip.ZipEntry;
 
 import org.apache.tools.ant.types.FileSet;
 
@@ -110,7 +111,7 @@ abstract class BaseResolver
      * @return IOStream opened on the file referenced
      * @exception IOException if any errors are encountered
      */
-    protected abstract InputStream resolve(String jarEntry) throws IOException;
+    protected abstract ZipEntry resolve(String jarEntry) throws IOException;
 
     /**
      * Closes any resources opened by the resolver.

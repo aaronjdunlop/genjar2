@@ -65,7 +65,7 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.util.depend.AbstractAnalyzer;
 
 /**
- * An analyzer capable fo traversing all class - class relationships with configurable include /
+ * An analyzer capable of traversing all class - class relationships with configurable include /
  * exclude lists.
  * <p>
  *

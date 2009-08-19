@@ -293,6 +293,21 @@
         <delete file="build/Lock/jar1.jar" />
         <delete file="build/Lock/jar2.jar" />
     </target>
+    
+    <target name="test.genjar.jar" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="net.sf.genjar.GenJar"/>
+            <classpath>
+                <pathelement location="../build"/>
+                <fileset dir="../lib" includes="**/*.jar" />
+            </classpath>
+            <classfilter>
+                <include name="net.sf.genjar"/>
+                <exclude name="org.apache.tools.ant"/>
+            </classfilter>
+            <fileset file="../etc/genjar.properties"/>
+        </genjar>
+    </target>
 
     <target name="test.profile" depends="init">
         <genjar destfile="${target-jar}" update="false">
