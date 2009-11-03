@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<project name="cltool" default="dist" basedir=".">
+
+    <target name="dist" depends="compile" description="Build release jar">
+        <jar basedir="build" file="build/cltool.jar" includes="**/*.class" excludes="**/Test*.class,**/AllTests.class" /> 
+        <jar basedir="java/src" file="build/cltool-src.jar" includes="**/*.java" /> 
+    </target>
+    
+    <target name="compile" description="Compile">
+        <delete dir="build" failonerror="false"/>
+        <mkdir dir="build" />
+        <javac srcdir="java/src" destdir="build" classpath="java/lib/junit.jar:java/lib/log4j.jar:java/lib/args4j.jar" debug="true"/>
+    </target>
+
+</project>
