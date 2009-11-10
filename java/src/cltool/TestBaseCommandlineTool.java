@@ -24,23 +24,24 @@ public class TestBaseCommandlineTool extends ToolTestCase
     @Test
     public void testSetup() throws Exception
     {
-        Cat tool = new Cat();
+        final Cat tool = new Cat();
         executeTool(tool, "", "");
         assertTrue("Expected setupFlag = 'true'", tool.setupFlag);
+        assertEquals(2, tool.option);
     }
 
     @Test
     public void testCat() throws Exception
     {
-        String input = "This is a\nthree-line\ntest.\n";
-        String output = executeTool(new Cat(), "", input);
+        final String input = "This is a\nthree-line\ntest.\n";
+        final String output = executeTool(new Cat(), "", input);
         assertEquals(input, output);
     }
 
     @Test
     public void testDebugOutput() throws Exception
     {
-        String input = "This is a\nthree-line\ntest.\n";
+        final String input = "This is a\nthree-line\ntest.\n";
 
         StringBuilder sb = new StringBuilder();
         sb.append("MaxThreads: 3\n");
@@ -72,7 +73,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
     @Test
     public void testArguments() throws Exception
     {
-        WithRequiredArguments tool = new WithRequiredArguments();
+        final WithRequiredArguments tool = new WithRequiredArguments();
         executeTool(tool, "-option foo arg0 arg1 arg2", "");
         assertEquals("foo", tool.option);
         assertEquals("arg0", tool.arg0);
@@ -89,14 +90,14 @@ public class TestBaseCommandlineTool extends ToolTestCase
     @Test
     public void testRequiredMultivaluedArgument() throws Exception
     {
-        WithRequiredMultivaluedArgument tool = new WithRequiredMultivaluedArgument();
+        final WithRequiredMultivaluedArgument tool = new WithRequiredMultivaluedArgument();
 
         // Verify that multi-valued arg is parsed
         executeTool(tool, "arg1 arg2 arg3", "");
         assertArrayEquals(new String[] {"arg1", "arg2", "arg3"}, tool.requiredArgs);
 
         // Verify usage output if multi-valued arg is not supplied
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         sb.append("Argument <args> is required\n");
         sb.append("\n");
         sb.append("Usage:\n");
@@ -104,8 +105,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
         sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off. default = info)\n");
-        sb.append(" -xt threads   : Maximum threads (default = CPU count)\n");
+        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         assertEquals(sb.toString(), executeTool(tool, "", ""));
     }
@@ -119,7 +120,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
     @Test
     public void testRequiredMultiValuedArgumentWithOtherArguments() throws Exception
     {
-        WithRequiredArgumentsAndMultivaluedArgument tool = new WithRequiredArgumentsAndMultivaluedArgument();
+        final WithRequiredArgumentsAndMultivaluedArgument tool = new WithRequiredArgumentsAndMultivaluedArgument();
 
         // Verify that multi-valued parameters are parsed
         executeTool(tool, "arg0 arg1 arg2 arg3 arg4", "");
@@ -138,8 +139,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
         sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off. default = info)\n");
-        sb.append(" -xt threads   : Maximum threads (default = CPU count)\n");
+        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
         assertEquals(sb.toString(), executeTool(tool, "", ""));
 
         sb = new StringBuilder();
@@ -152,8 +153,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
         sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off. default = info)\n");
-        sb.append(" -xt threads   : Maximum threads (default = CPU count)\n");
+        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         assertEquals(sb.toString(), executeTool(tool, "arg1 arg2", ""));
     }
@@ -166,11 +167,12 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append("\"-badarg\" is not a valid option\n");
         sb.append("\n");
         sb.append("Usage:\n");
+        sb.append(" -option opt   : Integer option;   Default = 2\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
         sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off. default = info)\n");
-        sb.append(" -xt threads   : Maximum threads (default = CPU count)\n");
+        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         assertEquals(sb.toString(), executeTool(new Cat(), "-badarg", ""));
 
@@ -186,8 +188,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
         sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off. default = info)\n");
-        sb.append(" -xt threads   : Maximum threads (default = CPU count)\n");
+        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         WithRequiredArguments tool = new WithRequiredArguments();
         assertEquals(sb.toString(), executeTool(tool, "argument", ""));
@@ -201,12 +203,12 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : [other args]\n");
-        sb.append(" -option value : o\n");
+        sb.append(" -option value : o;   Default = foo\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
         sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off. default = info)\n");
-        sb.append(" -xt threads   : Maximum threads (default = CPU count)\n");
+        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         tool = new WithRequiredArguments();
         assertEquals(sb.toString(), executeTool(tool, "-option foo", ""));
@@ -216,33 +218,33 @@ public class TestBaseCommandlineTool extends ToolTestCase
     @Test
     public void testDateOptionHandler() throws Exception
     {
-        WithDateField tool = new WithDateField();
+        final WithDateField tool = new WithDateField();
         executeTool(tool, "2008.12.01", "");
         assertEquals(1228118400000L, tool.date.getTime());
 
         // And test a parse failure
-        String output = executeTool(tool, "123456", "");
+        final String output = executeTool(tool, "123456", "");
         assertTrue(output.startsWith("Error parsing date: 123456"));
     }
 
     @Test
     public void testCalendarOptionHandler() throws Exception
     {
-        WithCalendarField tool = new WithCalendarField();
+        final WithCalendarField tool = new WithCalendarField();
         executeTool(tool, "2008.12.01", "");
         assertEquals(2008, tool.cal.get(Calendar.YEAR));
         assertEquals(11, tool.cal.get(Calendar.MONTH));
         assertEquals(1, tool.cal.get(Calendar.DATE));
 
         // And test a parse failure
-        String output = executeTool(tool, "123456", "");
+        final String output = executeTool(tool, "123456", "");
         assertTrue(output.startsWith("Error parsing date: 123456"));
     }
 
     @Test
     public void testMemoryOptionHandler() throws Exception
     {
-        WithMemoryField tool = new WithMemoryField();
+        final WithMemoryField tool = new WithMemoryField();
         executeTool(tool, "1500", "");
         assertEquals(1500, tool.memory);
         executeTool(tool, "1500m", "");
@@ -253,7 +255,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
         assertEquals(1024 * 1024 * 1024, tool.memory);
 
         // And test a parse failure
-        String output = executeTool(tool, "2z", "");
+        final String output = executeTool(tool, "2z", "");
         assertTrue(output.startsWith("Error parsing memory argument: 2z"));
     }
 
@@ -264,7 +266,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
     @Test
     public void testEnumOptionHandler() throws Exception
     {
-        WithEnumField tool = new WithEnumField();
+        final WithEnumField tool = new WithEnumField();
         executeTool(tool, "OptionB", "");
         assertEquals(Enum.OptionB, tool.e);
         executeTool(tool, "optiona", "");
@@ -273,7 +275,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
         assertEquals(Enum.OptionB, tool.e);
 
         // And test a parse failure
-        String output = executeTool(tool, "2z", "");
+        final String output = executeTool(tool, "2z", "");
         assertTrue("Wrong error output", output.startsWith("\"2z\" is not a valid value for <enum>"));
     }
 
@@ -281,8 +283,11 @@ public class TestBaseCommandlineTool extends ToolTestCase
     {
         private boolean setupFlag = false;
 
+        @Option(name="-option", metaVar="opt", usage="Integer option")
+        public int option = 2;
+
         @Override
-        public void setup(CmdLineParser parser) throws Exception
+        public void setup(final CmdLineParser parser) throws Exception
         {
             setupFlag = true;
         }
@@ -291,8 +296,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         public void run() throws Exception
         {
             logger.debug("MaxThreads: " + maxThreads);
-            StringBuffer sb = new StringBuffer();
-            for (String arg : inputFiles)
+            final StringBuffer sb = new StringBuffer();
+            for (final String arg : inputFiles)
             {
                 sb.append(arg);
                 sb.append(' ');
@@ -302,7 +307,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
                 sb.deleteCharAt(sb.length() - 1);
             }
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
             for (String s = br.readLine(); s != null; s = br.readLine())
             {
                 System.out.println(s);
@@ -355,8 +360,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         @Override
         protected void run() throws Exception
         {
-            StringBuilder sb = new StringBuilder();
-            for (String arg : otherArgs)
+            final StringBuilder sb = new StringBuilder();
+            for (final String arg : otherArgs)
             {
                 sb.append(arg);
                 sb.append(' ');
@@ -408,7 +413,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
     public static enum Enum {
         OptionA, OptionB;
 
-        public static Enum forString(String s) {
+        public static Enum forString(final String s) {
             if (s.equalsIgnoreCase("a")) {
                 return OptionA;
             } else if (s.equalsIgnoreCase("b")) {

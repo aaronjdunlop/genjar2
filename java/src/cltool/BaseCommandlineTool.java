@@ -46,7 +46,7 @@ import org.kohsuke.args4j.spi.Setter;
 public abstract class BaseCommandlineTool
 {
     /** Non-threadable tools use a single thread */
-    @Option(name = "-xt", metaVar = "threads", usage = "Maximum threads (default = CPU count)")
+    @Option(name = "-xt", metaVar = "threads", usage = "Maximum threads")
     protected int maxThreads = Runtime.getRuntime().availableProcessors();
 
     @Option(name = "-out", metaVar = "filename", usage = "Output file")
@@ -54,8 +54,8 @@ public abstract class BaseCommandlineTool
 
     protected static Logger logger = Logger.getLogger("default");
 
-    @Option(name = "-v", handler = LogLevelOptionHandler.class, metaVar = "level", usage = "Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn; -2,error; -3,fatal; -4,off. default = info)")
-    protected Level verbosityLevel = Level.INFO;
+    @Option(name = "-v", handler = LogLevelOptionHandler.class, metaVar = "level", usage = "Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn; -2,error; -3,fatal; -4,off)")
+    protected LogLevel verbosityLevel = LogLevel.info;
 
     @Option(name = "-time", usage = "Output execution times")
     protected boolean time = false;
@@ -108,7 +108,7 @@ public abstract class BaseCommandlineTool
      * @param parser The command-line parser which parsed the options. Use this parser instance if
      *            an overriding implementation needs to throw a {@link CmdLineException}.
      */
-    protected void setup(CmdLineParser parser) throws Exception
+    protected void setup(final CmdLineParser parser) throws Exception
     {}
 
     /**
@@ -125,29 +125,29 @@ public abstract class BaseCommandlineTool
      *
      * @param args
      */
-    public final static void run(String[] args)
+    public final static void run(final String[] args)
     {
         try
         {
-            BaseCommandlineTool tool = (BaseCommandlineTool) Class.forName(
+            final BaseCommandlineTool tool = (BaseCommandlineTool) Class.forName(
                 Thread.currentThread().getStackTrace()[2].getClassName()).getConstructor(new Class[] {}).newInstance(
                 new Object[] {});
             run(tool, args);
         }
-        catch (Exception e)
+        catch (final Exception e)
         {
             e.printStackTrace();
         }
     }
 
-    final static void run(BaseCommandlineTool tool, String[] args) throws Exception
+    final static void run(final BaseCommandlineTool tool, final String[] args) throws Exception
     {
-        long startTime = System.currentTimeMillis();
+        final long startTime = System.currentTimeMillis();
 
         CmdLineParser.registerHandler(Date.class, DateOptionHandler.class);
         CmdLineParser.registerHandler(Calendar.class, CalendarOptionHandler.class);
 
-        CmdLineParser parser = new CmdLineParser(tool);
+        final CmdLineParser parser = new CmdLineParser(tool);
 
         try
         {
@@ -157,7 +157,7 @@ public abstract class BaseCommandlineTool
             // without any header or formatting.
             BasicConfigurator.configure(new ConsoleAppender(new PatternLayout("%m%n")));
 
-            tool.logger.setLevel(tool.verbosityLevel);
+            BaseCommandlineTool.logger.setLevel(tool.verbosityLevel.toLog4JLevel());
 
             if (tool.outputFile != null)
             {
@@ -165,7 +165,7 @@ public abstract class BaseCommandlineTool
                 {
                     System.setOut(new PrintStream(tool.outputFile));
                 }
-                catch (FileNotFoundException e)
+                catch (final FileNotFoundException e)
                 {
                     System.err.println("Unable to open " + tool.outputFile + " : " + e.getMessage());
                     return;
@@ -174,7 +174,7 @@ public abstract class BaseCommandlineTool
 
             tool.setup(null);
         }
-        catch (CmdLineException e)
+        catch (final CmdLineException e)
         {
             System.err.println(e.getMessage());
             System.err.println("\nUsage:");
@@ -189,9 +189,9 @@ public abstract class BaseCommandlineTool
             // files as appropriate.
             // TODO: Re-route multiple files into a single InputStream so we can execute the tool a
             // single time.
-            for (Object filename : tool.inputFiles)
+            for (final Object filename : tool.inputFiles)
             {
-                InputStream is = fileAsInputStream((String) filename);
+                final InputStream is = fileAsInputStream((String) filename);
                 System.setIn(is);
                 tool.run();
                 is.close();
@@ -223,9 +223,9 @@ public abstract class BaseCommandlineTool
      * @return InputStream
      * @throws IOException
      */
-    protected static InputStream fileAsInputStream(String filename) throws IOException
+    protected static InputStream fileAsInputStream(final String filename) throws IOException
     {
-        File f = new File(filename);
+        final File f = new File(filename);
         if (!f.exists())
         {
             System.err.println("Unable to find file: " + filename);
@@ -240,16 +240,16 @@ public abstract class BaseCommandlineTool
         return is;
     }
 
-    protected static Calendar parseDate(CmdLineParser parser, String date) throws CmdLineException
+    protected static Calendar parseDate(final CmdLineParser parser, final String date) throws CmdLineException
     {
-        Calendar c = Calendar.getInstance();
-        int year = c.get(Calendar.YEAR);
+        final Calendar c = Calendar.getInstance();
+        final int year = c.get(Calendar.YEAR);
 
-        for (SimpleDateFormat dateFormat : COMMANDLINE_DATE_FORMATS)
+        for (final SimpleDateFormat dateFormat : COMMANDLINE_DATE_FORMATS)
         {
             try
             {
-                Date d = dateFormat.parse(date);
+                final Date d = dateFormat.parse(date);
                 c.setTime(d);
                 if (c.get(Calendar.YEAR) == 1970)
                 {
@@ -257,7 +257,7 @@ public abstract class BaseCommandlineTool
                 }
                 return c;
             }
-            catch (java.text.ParseException ignore)
+            catch (final java.text.ParseException ignore)
             {}
         }
 
@@ -277,13 +277,13 @@ public abstract class BaseCommandlineTool
      */
     public static class CalendarOptionHandler extends OneArgumentOptionHandler<Calendar>
     {
-        public CalendarOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Calendar> setter)
+        public CalendarOptionHandler(final CmdLineParser parser, final OptionDef option, final Setter<? super Calendar> setter)
         {
             super(parser, option, setter);
         }
 
         @Override
-        public Calendar parse(String s) throws CmdLineException
+        public Calendar parse(final String s) throws CmdLineException
         {
             return BaseCommandlineTool.parseDate(owner, s.toLowerCase());
         }
@@ -300,13 +300,13 @@ public abstract class BaseCommandlineTool
      */
     public static class DateOptionHandler extends OneArgumentOptionHandler<Date>
     {
-        public DateOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Date> setter)
+        public DateOptionHandler(final CmdLineParser parser, final OptionDef option, final Setter<? super Date> setter)
         {
             super(parser, option, setter);
         }
 
         @Override
-        public Date parse(String s) throws CmdLineException
+        public Date parse(final String s) throws CmdLineException
         {
             return BaseCommandlineTool.parseDate(owner, s.toLowerCase()).getTime();
         }
@@ -323,13 +323,13 @@ public abstract class BaseCommandlineTool
      */
     public static class TimestampOptionHandler extends OneArgumentOptionHandler<Long>
     {
-        public TimestampOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Long> setter)
+        public TimestampOptionHandler(final CmdLineParser parser, final OptionDef option, final Setter<? super Long> setter)
         {
             super(parser, option, setter);
         }
 
         @Override
-        public Long parse(String s) throws CmdLineException
+        public Long parse(final String s) throws CmdLineException
         {
             return BaseCommandlineTool.parseDate(owner, s.toLowerCase()).getTime().getTime();
         }
@@ -341,9 +341,30 @@ public abstract class BaseCommandlineTool
         }
     }
 
-    public static class LogLevelOptionHandler extends OneArgumentOptionHandler<Level>
+    public static enum LogLevel
     {
-        public LogLevelOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Level> setter)
+        all, trace, debug, info, warn, error, fatal, off;
+
+        public Level toLog4JLevel()
+        {
+            switch (this)
+            {
+                case all : return Level.ALL;
+                case trace : return Level.TRACE;
+                case debug : return Level.DEBUG;
+                case info : return Level.INFO;
+                case warn : return Level.WARN;
+                case error : return Level.ERROR;
+                case fatal : return Level.FATAL;
+                case off : return Level.OFF;
+                default : return null;
+            }
+        }
+    }
+
+    public static class LogLevelOptionHandler extends OneArgumentOptionHandler<LogLevel>
+    {
+        public LogLevelOptionHandler(final CmdLineParser parser, final OptionDef option, final Setter<? super LogLevel> setter)
         {
             super(parser, option, setter);
         }
@@ -358,65 +379,57 @@ public abstract class BaseCommandlineTool
         }
 
         @Override
-        public Level parse(String s) throws CmdLineException
+        public LogLevel parse(String s) throws CmdLineException
         {
-            Level value = null;
-
             if (Character.isDigit(s.charAt(s.length() - 1)))
             {
                 s = s.replaceFirst("\\+", "");
-                int level = Integer.parseInt(s);
+                final int level = Integer.parseInt(s);
                 switch (level)
                 {
-                    case 3 :
-                        return Level.ALL;
-                    case 2 :
-                        return Level.TRACE;
-                    case 1 :
-                        return Level.DEBUG;
-                    case 0 :
-                        return Level.INFO;
-                    case -1 :
-                        return Level.WARN;
-                    case -2 :
-                        return Level.ERROR;
-                    case -3 :
-                        return Level.FATAL;
+                    case 3 : return LogLevel.all;
+                    case 2 : return LogLevel.trace;
+                    case 1 : return LogLevel.debug;
+                    case 0 : return LogLevel.info;
+                    case -1 : return LogLevel.warn;
+                    case -2 : return LogLevel.error;
+                    case -3 : return LogLevel.fatal;
+                    case -4 : return LogLevel.off;
                 }
             }
             else
             {
                 if (s.equals("all"))
                 {
-                    return Level.ALL;
+                    return LogLevel.all;
                 }
                 else if (s.equals("trace"))
                 {
-                    return Level.TRACE;
+                    return LogLevel.trace;
                 }
                 else if (s.equals("debug"))
                 {
-                    return Level.DEBUG;
+                    return LogLevel.debug;
                 }
                 else if (s.equals("info"))
                 {
-                    return Level.INFO;
+                    return LogLevel.info;
                 }
                 else if (s.equals("warn"))
                 {
-                    return Level.WARN;
+                    return LogLevel.warn;
                 }
                 else if (s.equals("error"))
                 {
-                    return Level.ERROR;
+                    return LogLevel.error;
                 }
                 else if (s.equals("fatal"))
                 {
-                    return Level.FATAL;
+                    return LogLevel.fatal;
                 }
                 else if (s.equals("off"))
                 {
-                    return Level.OFF;
+                    return LogLevel.off;
                 }
             }
 
@@ -426,7 +439,7 @@ public abstract class BaseCommandlineTool
 
     public static class MemoryOptionHandler extends OneArgumentOptionHandler<Integer>
     {
-        public MemoryOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Integer> setter)
+        public MemoryOptionHandler(final CmdLineParser parser, final OptionDef option, final Setter<? super Integer> setter)
         {
             super(parser, option, setter);
         }
@@ -454,7 +467,7 @@ public abstract class BaseCommandlineTool
             {
                 return new Integer(Integer.parseInt(s) * multiplier);
             }
-            catch (NumberFormatException e)
+            catch (final NumberFormatException e)
             {
                 throw new CmdLineException(owner, "Error parsing memory argument: " + s);
             }
