@@ -31,7 +31,7 @@ public abstract class ToolTestCase
      * @return Tool output (STDOUT and STDERR)
      * @throws Exception if something bad happens
      */
-    protected String executeTool(BaseCommandlineTool tool, String args, String input) throws Exception
+    protected String executeTool(final BaseCommandlineTool tool, final String args, final String input) throws Exception
     {
         return executeTool(tool, args, new ByteArrayInputStream(input.getBytes()));
     }
@@ -46,9 +46,9 @@ public abstract class ToolTestCase
      * @return Tool output (STDOUT and STDERR)
      * @throws Exception if something bad happens
      */
-    protected String executeToolFromFile(BaseCommandlineTool tool, String args, String inputFilename) throws Exception
+    protected String executeToolFromFile(final BaseCommandlineTool tool, final String args, final String inputFilename) throws Exception
     {
-        return executeTool(tool, args, BaseCommandlineTool.fileAsInputStream(UNIT_TEST_DIR + inputFilename));
+        return executeTool(tool, args, tool.fileAsInputStream(UNIT_TEST_DIR + inputFilename));
     }
 
     /**
@@ -61,25 +61,25 @@ public abstract class ToolTestCase
      * @return Tool output (STDOUT and STDERR)
      * @throws Exception if something bad happens
      */
-    protected String executeTool(BaseCommandlineTool tool, String args, InputStream input) throws Exception
+    protected String executeTool(final BaseCommandlineTool tool, final String args, final InputStream input) throws Exception
     {
         // Store STDIN, STDOUT, and STDERR so we can restore them after the test run
-        InputStream systemIn = System.in;
-        PrintStream systemOut = System.out;
-        PrintStream systemErr = System.err;
+        final InputStream systemIn = System.in;
+        final PrintStream systemOut = System.out;
+        final PrintStream systemErr = System.err;
 
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(8192);
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream(8192);
         try
         {
             // Redirect STDIN, STDOUT, and STDERR for testing
             System.setIn(input);
-            PrintStream ps = new PrintStream(bos);
+            final PrintStream ps = new PrintStream(bos);
             System.setOut(ps);
             System.setErr(ps);
 
             // Execute the tool
-            String[] argArray = args.length() == 0 ? new String[0] : args.split(" ");
-            BaseCommandlineTool.run(tool, argArray);
+            final String[] argArray = args.length() == 0 ? new String[0] : args.split(" ");
+            tool.runInternal(argArray);
         }
         finally
         {
@@ -88,7 +88,7 @@ public abstract class ToolTestCase
             System.setOut(systemOut);
             System.setErr(systemErr);
         }
-        String output = new String(bos.toByteArray());
+        final String output = new String(bos.toByteArray());
 
         // Just to avoid cross-platform issues, we'll replace all forms of newline with '\n'
         return output.replaceAll("\r\n|\r", "\n");
@@ -101,10 +101,10 @@ public abstract class ToolTestCase
      * @return Contents of the specified file
      * @throws IOException
      */
-    protected static String unitTestFileAsString(String filename) throws IOException
+    protected static String unitTestFileAsString(final String filename) throws IOException
     {
-        BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(UNIT_TEST_DIR + filename)));
-        StringBuilder sb = new StringBuilder(1024);
+        final BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(UNIT_TEST_DIR + filename)));
+        final StringBuilder sb = new StringBuilder(1024);
         for (String line = br.readLine(); line != null; line = br.readLine())
         {
             sb.append(line);

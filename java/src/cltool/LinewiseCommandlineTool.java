@@ -11,8 +11,8 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Processes input (from files or STDIN) line-by-line. Subclasses must implement a {@link Callable}
- * task to do the processing.
+ * Processes input (from files or STDIN) line-by-line (possibly using multiple threads). Subclasses
+ * must implement a {@link Callable} task to do the processing.
  *
  * @author Aaron Dunlop
  * @since Nov 5, 2008
@@ -35,14 +35,14 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
     @Override
     public final void run() throws Exception
     {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         if (maxThreads == 1)
         {
             // Single-threaded version is simple...
             for (String line = br.readLine(); line != null; line = br.readLine())
             {
-                Callable<String> lineTask = lineTask(line);
+                final Callable<String> lineTask = lineTask(line);
                 System.out.println(lineTask.call());
             }
             br.close();
@@ -51,16 +51,16 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
         {
             // For the multi-threaded version, we need to create a separate thread which will
             // collect the output and spit it out in-order
-            BlockingQueue<FutureTask<String>> outputQueue = new LinkedBlockingQueue<FutureTask<String>>();
-            OutputThread outputThread = new OutputThread(outputQueue);
+            final BlockingQueue<FutureTask<String>> outputQueue = new LinkedBlockingQueue<FutureTask<String>>();
+            final OutputThread outputThread = new OutputThread(outputQueue);
             outputThread.start();
 
-            ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
+            final ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
 
             for (String line = br.readLine(); line != null; line = br.readLine())
             {
-                Callable<String> lineTask = lineTask(line);
-                FutureTask<String> futureTask = new FutureTask<String>(lineTask);
+                final Callable<String> lineTask = lineTask(line);
+                final FutureTask<String> futureTask = new FutureTask<String>(lineTask);
                 outputQueue.add(futureTask);
                 executor.execute(futureTask);
             }
@@ -84,7 +84,7 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
     {
         private final BlockingQueue<FutureTask<String>> queue;
 
-        public OutputThread(BlockingQueue<FutureTask<String>> queue)
+        public OutputThread(final BlockingQueue<FutureTask<String>> queue)
         {
             this.queue = queue;
         }
@@ -96,18 +96,18 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
             {
                 try
                 {
-                    FutureTask<String> task = queue.take();
+                    final FutureTask<String> task = queue.take();
                     if (task == END_OF_INPUT_MARKER)
                     {
                         return;
                     }
-                    String output = task.get();
+                    final String output = task.get();
                     System.out.println(output);
                     System.out.flush();
                 }
-                catch (InterruptedException ignore)
+                catch (final InterruptedException ignore)
                 {}
-                catch (ExecutionException e)
+                catch (final ExecutionException e)
                 {
                     e.printStackTrace();
                     return;

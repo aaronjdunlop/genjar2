@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="java/src"/>
-	<classpathentry kind="lib" path="java/lib/log4j.jar"/>
-	<classpathentry kind="lib" path="java/lib/junit.jar" sourcepath="java/lib/junit-src.jar"/>
+	<classpathentry exported="true" kind="lib" path="java/lib/log4j.jar"/>
+	<classpathentry exported="true" kind="lib" path="java/lib/junit.jar" sourcepath="java/lib/junit-src.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/args4j"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/args4j"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
