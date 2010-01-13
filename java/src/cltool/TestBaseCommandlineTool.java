@@ -10,14 +10,13 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TestBaseCommandlineTool extends ToolTestCase
 {
     /**
-     * Verifies that the {@link BaseCommandlineTool#setup(CmdLineParser)} method is executed properly
+     * Verifies that the {@link BaseCommandlineTool#setup(CmdLineParser)} method is executed
+     * properly
      *
      * @throws Exception
      */
@@ -100,12 +99,13 @@ public class TestBaseCommandlineTool extends ToolTestCase
         final StringBuilder sb = new StringBuilder();
         sb.append("Argument <args> is required\n");
         sb.append("\n");
-        sb.append("Usage: TestBaseCommandlineTool$WithRequiredMultivaluedArgument [-out filename] [-time] [-v level] <args>\n");
+        sb
+            .append("Usage: TestBaseCommandlineTool$WithRequiredMultivaluedArgument [-out filename] [-time] [-v level] <args>\n");
         sb.append(" args          : [args]\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
+        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(tool, "", ""));
     }
@@ -131,29 +131,52 @@ public class TestBaseCommandlineTool extends ToolTestCase
         StringBuilder sb = new StringBuilder();
         sb.append("Argument <arg0> is required\n");
         sb.append("\n");
-        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-out filename] [-time] [-v level] <arg0> [arg1] <values>\n");
+        sb
+            .append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-out filename] [-time] [-v level] <arg0> <arg1> <values>\n");
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : Other required arguments\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
+        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
         assertEquals(sb.toString(), executeTool(tool, "", ""));
 
         sb = new StringBuilder();
         sb.append("Argument <values> is required\n");
         sb.append("\n");
-        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-out filename] [-time] [-v level] <arg0> [arg1] <values>\n");
+        sb
+            .append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-out filename] [-time] [-v level] <arg0> <arg1> <values>\n");
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : Other required arguments\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
+        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(tool, "arg1 arg2", ""));
+    }
+
+    /**
+     * Tests parsing required multi-value arguments. Tests a class which declares optional single-
+     * and multi-valued arguments.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testOptionalMultivaluedArgument() throws Exception
+    {
+        final WithOptionalMultivaluedArgument tool = new WithOptionalMultivaluedArgument();
+
+        // Verify that both single- and multi-valued args is parsed
+        executeTool(tool, "arg1", "");
+        assertEquals("arg1", tool.optionalArg);
+        assertNull(tool.optionalArgs);
+
+        executeTool(tool, "arg1 arg2 arg3", "");
+        assertEquals("arg1", tool.optionalArg);
+        assertArrayEquals(new String[] {"arg2", "arg3"}, tool.optionalArgs);
     }
 
     @Test
@@ -167,8 +190,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -option opt   : Integer option;   Default = 2\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
+        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(new Cat(), "-badarg", ""));
 
@@ -176,15 +199,16 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb = new StringBuilder();
         sb.append("Option \"-option\" is required\n");
         sb.append("\n");
-        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArguments <-option value> [-out filename] [-time] [-v level] [-xt threads] <arg0> [arg1] [values]\n");
+        sb
+            .append("Usage: TestBaseCommandlineTool$WithRequiredArguments <-option value> [-out filename] [-time] [-v level] [-xt threads] <arg0> [arg1] [values]\n");
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : [other args]\n");
         sb.append(" -option value : o\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
+        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
         sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         WithRequiredArguments tool = new WithRequiredArguments();
@@ -195,15 +219,16 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb = new StringBuilder();
         sb.append("Argument <arg0> is required\n");
         sb.append("\n");
-        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArguments <-option value> [-out filename] [-time] [-v level] [-xt threads] <arg0> [arg1] [values]\n");
+        sb
+            .append("Usage: TestBaseCommandlineTool$WithRequiredArguments <-option value> [-out filename] [-time] [-v level] [-xt threads] <arg0> [arg1] [values]\n");
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : [other args]\n");
         sb.append(" -option value : o;   Default = foo\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn;\n");
-        sb.append("                 -2,error; -3,fatal; -4,off);   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
+        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
         sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         tool = new WithRequiredArguments();
@@ -219,7 +244,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
         assertArrayEquals(new int[] {1}, tool.intOpts);
 
         executeTool(tool, "-i 2,3", "");
-        assertArrayEquals(new int[] {2,3}, tool.intOpts);
+        assertArrayEquals(new int[] {2, 3}, tool.intOpts);
     }
 
     @Test
@@ -276,7 +301,9 @@ public class TestBaseCommandlineTool extends ToolTestCase
     }
 
     /**
-     * Tests enumeration handling - both through case-insensitive lexical matching and through the forString() method.
+     * Tests enumeration handling - both through case-insensitive lexical matching and through the
+     * forString() method.
+     *
      * @throws Exception
      */
     @Test
@@ -299,7 +326,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
     {
         private boolean setupFlag = false;
 
-        @Option(name="-option", metaVar="opt", usage="Integer option")
+        @Option(name = "-option", metaVar = "opt", usage = "Integer option")
         public int option = 2;
 
         @Override
@@ -333,7 +360,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
 
     private static class WithMultivaluedOption extends BaseCommandlineTool
     {
-        @Option(name="-i", multiValued = true, separator=",", usage = "[args]", metaVar = "args")
+        @Option(name = "-i", multiValued = true, separator = ",", usage = "[args]", metaVar = "args")
         private int[] intOpts = {1};
 
         @Override
@@ -371,11 +398,24 @@ public class TestBaseCommandlineTool extends ToolTestCase
         {}
     }
 
+    private static class WithOptionalMultivaluedArgument extends BaseCommandlineTool
+    {
+        @Argument(required = false, usage = "[arg]", metaVar = "arg")
+        private String optionalArg;
+
+        @Argument(required = false, multiValued = true, usage = "[args]", metaVar = "args")
+        private String[] optionalArgs;
+
+        @Override
+        protected void run() throws Exception
+        {}
+    }
+
     private static class WithRequiredArgumentsAndMultivaluedArgument extends BaseCommandlineTool
     {
         // arg0 and arg1 are declared in reverse order, just to confirm that 'index' is used and not
         // declaration ordering.
-        @Argument(index = 1, usage = "arg1", metaVar = "arg1")
+        @Argument(index = 1, required = true, usage = "arg1", metaVar = "arg1")
         private String arg1;
 
         @Argument(index = 0, required = true, usage = "arg0", metaVar = "arg0")
@@ -437,13 +477,18 @@ public class TestBaseCommandlineTool extends ToolTestCase
         {}
     }
 
-    public static enum Enum {
+    public static enum Enum
+    {
         OptionA, OptionB;
 
-        public static Enum forString(final String s) {
-            if (s.equalsIgnoreCase("a")) {
+        public static Enum forString(final String s)
+        {
+            if (s.equalsIgnoreCase("a"))
+            {
                 return OptionA;
-            } else if (s.equalsIgnoreCase("b")) {
+            }
+            else if (s.equalsIgnoreCase("b"))
+            {
                 return OptionB;
             }
 

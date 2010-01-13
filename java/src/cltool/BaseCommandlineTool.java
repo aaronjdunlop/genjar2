@@ -21,6 +21,7 @@ import org.apache.log4j.PatternLayout;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.EnumAliasMap;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.OptionDef;
 import org.kohsuke.args4j.spi.OneArgumentOptionHandler;
@@ -57,7 +58,7 @@ public abstract class BaseCommandlineTool
 
     protected static Logger logger = Logger.getLogger("default");
 
-    @Option(name = "-v", handler = LogLevelOptionHandler.class, metaVar = "level", usage = "Verbosity  (3,all; 2,trace, 1,debug; 0,info; -1,warn; -2,error; -3,fatal; -4,off)")
+    @Option(name = "-v", metaVar = "level", usage = "Verbosity")
     protected LogLevel verbosityLevel = LogLevel.info;
 
     @Option(name = "-time", usage = "Output execution times")
@@ -433,7 +434,11 @@ public abstract class BaseCommandlineTool
 
     public static enum LogLevel
     {
-        all, trace, debug, info, warn, error, fatal, off;
+        all("+3", "3"), trace("+2", "2"), debug("+1", "1"), info("0"), warn("-1"), error("-2"), fatal("-3"), off("-4");
+
+        private LogLevel(final String... aliases) {
+            EnumAliasMap.singleton().addAliases(this, aliases);
+        }
 
         public Level toLog4JLevel()
         {
@@ -458,90 +463,6 @@ public abstract class BaseCommandlineTool
                 default :
                     return null;
             }
-        }
-    }
-
-    public static class LogLevelOptionHandler extends OneArgumentOptionHandler<LogLevel>
-    {
-        public LogLevelOptionHandler(final CmdLineParser parser, final OptionDef option,
-            final Setter<? super LogLevel> setter)
-        {
-            super(parser, option, setter);
-        }
-
-        /**
-         * @return "level"
-         */
-        @Override
-        public String getDefaultMetaVariable()
-        {
-            return "level";
-        }
-
-        @Override
-        public LogLevel parse(String s) throws CmdLineException
-        {
-            if (Character.isDigit(s.charAt(s.length() - 1)))
-            {
-                s = s.replaceFirst("\\+", "");
-                final int level = Integer.parseInt(s);
-                switch (level)
-                {
-                    case 3 :
-                        return LogLevel.all;
-                    case 2 :
-                        return LogLevel.trace;
-                    case 1 :
-                        return LogLevel.debug;
-                    case 0 :
-                        return LogLevel.info;
-                    case -1 :
-                        return LogLevel.warn;
-                    case -2 :
-                        return LogLevel.error;
-                    case -3 :
-                        return LogLevel.fatal;
-                    case -4 :
-                        return LogLevel.off;
-                }
-            }
-            else
-            {
-                if (s.equals("all"))
-                {
-                    return LogLevel.all;
-                }
-                else if (s.equals("trace"))
-                {
-                    return LogLevel.trace;
-                }
-                else if (s.equals("debug"))
-                {
-                    return LogLevel.debug;
-                }
-                else if (s.equals("info"))
-                {
-                    return LogLevel.info;
-                }
-                else if (s.equals("warn"))
-                {
-                    return LogLevel.warn;
-                }
-                else if (s.equals("error"))
-                {
-                    return LogLevel.error;
-                }
-                else if (s.equals("fatal"))
-                {
-                    return LogLevel.fatal;
-                }
-                else if (s.equals("off"))
-                {
-                    return LogLevel.off;
-                }
-            }
-
-            throw new CmdLineException(owner, "Unknown verbosity level: " + s);
         }
     }
 
