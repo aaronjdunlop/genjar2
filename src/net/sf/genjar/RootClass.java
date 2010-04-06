@@ -71,7 +71,7 @@ import org.apache.tools.ant.types.FileSet;
  * </pre>
  * <p>
  *
- * When the &lt;class&gt; element is encountered, a new ClassSpec is instantiated to represent that
+ * When the &lt;class&gt; element is encountered, a new {@link RootClass} is instantiated to represent that
  * element. The class is used hold the class' name and manifest information.
  * </p>
  * <p>
@@ -111,8 +111,7 @@ public class RootClass
     public RootClass(Project project, String name)
     {
         this.project = project;
-        this.jarEntries.add(name);
-        this.singleNameSet = true;
+        setName(name);
     }
 
     /**
