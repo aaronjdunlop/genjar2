@@ -57,8 +57,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb = new StringBuilder();
         sb.append("MaxThreads: 1\n");
         sb.append(input);
-        assertEquals(sb.toString(), executeTool(new Cat(), "-v 1", input));
-        assertEquals(sb.toString(), executeTool(new Cat(), "-v +1", input));
+        assertEquals(sb.toString(), executeTool(new Cat(), "-v 2", input));
+        assertEquals(sb.toString(), executeTool(new Cat(), "-v +2", input));
         assertEquals(input, executeTool(new Cat(), "-v -1", input));
     }
 
@@ -104,8 +104,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" args          : [args]\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
-        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
+        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(tool, "", ""));
     }
@@ -138,8 +138,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" values        : Other required arguments\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
-        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
+        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
         assertEquals(sb.toString(), executeTool(tool, "", ""));
 
         sb = new StringBuilder();
@@ -152,8 +152,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" values        : Other required arguments\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
-        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
+        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(tool, "arg1 arg2", ""));
     }
@@ -190,8 +190,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -option opt   : Integer option;   Default = 2\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
-        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
+        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(new Cat(), "-badarg", ""));
 
@@ -207,8 +207,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -option value : o\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
-        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
+        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
         sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         WithRequiredArguments tool = new WithRequiredArguments();
@@ -227,8 +227,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb.append(" -option value : o;   Default = foo\n");
         sb.append(" -out filename : Output file\n");
         sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+3,3; trace,+2,2; debug,+1,1; info,0; warn,-1;\n");
-        sb.append("                 error,-2; fatal,-3; off,-4)   Default = info\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
+        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
         sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
 
         tool = new WithRequiredArguments();
@@ -338,7 +338,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
         @Override
         public void run() throws Exception
         {
-            logger.debug("MaxThreads: " + maxThreads);
+            logger.fine("MaxThreads: " + maxThreads);
             final StringBuffer sb = new StringBuffer();
             for (final String arg : inputFiles)
             {
@@ -361,7 +361,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
     private static class WithMultivaluedOption extends BaseCommandlineTool
     {
         @Option(name = "-i", multiValued = true, separator = ",", usage = "[args]", metaVar = "args")
-        private int[] intOpts = {1};
+        private final int[] intOpts = {1};
 
         @Override
         protected void run() throws Exception

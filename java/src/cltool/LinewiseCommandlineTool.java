@@ -43,7 +43,11 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
             for (String line = br.readLine(); line != null; line = br.readLine())
             {
                 final Callable<String> lineTask = lineTask(line);
-                System.out.println(lineTask.call());
+                String result = lineTask.call();
+                if (result.length() > 0)
+                {
+                    System.out.println(result);
+                }
             }
             br.close();
         }
@@ -102,7 +106,10 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
                         return;
                     }
                     final String output = task.get();
-                    System.out.println(output);
+                    if (output.length() > 0)
+                    {
+                        System.out.println(output);
+                    }
                     System.out.flush();
                 }
                 catch (final InterruptedException ignore)

@@ -11,13 +11,12 @@ import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -168,11 +167,16 @@ public abstract class BaseCommandlineTool
         {
             parser.parseArgument(args);
 
-            // Configure Log4J to log to the console, and only the message actually logged,
+            // Configure java.util.logging to log to the console, and only the message actually logged,
             // without any header or formatting.
-            BasicConfigurator.configure(new ConsoleAppender(new PatternLayout("%m%n")));
-
-            BaseCommandlineTool.logger.setLevel(verbosityLevel.toLog4JLevel());
+            logger = Logger.getLogger("cltool");
+            for (Handler h : logger.getHandlers()) {
+                logger.removeHandler(h);
+            }
+            logger.setUseParentHandlers(false);
+            final Level l = verbosityLevel.toLevel();
+            logger.addHandler(new SystemOutHandler(l));
+            logger.setLevel(l);
 
             if (outputFile != null)
             {
@@ -297,7 +301,7 @@ public abstract class BaseCommandlineTool
     protected Date todayMidnight()
     {
         final Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR, 0);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         return cal.getTime();
@@ -310,7 +314,7 @@ public abstract class BaseCommandlineTool
     {
         final Calendar cal = Calendar.getInstance();
         cal.set(Calendar.DATE, cal.get(Calendar.DATE) - 1);
-        cal.set(Calendar.HOUR, 0);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         return cal.getTime();
@@ -323,7 +327,7 @@ public abstract class BaseCommandlineTool
     {
         final Calendar cal = Calendar.getInstance();
         cal.set(Calendar.DATE, cal.get(Calendar.DATE) - 1);
-        cal.set(Calendar.HOUR, 23);
+        cal.set(Calendar.HOUR_OF_DAY, 23);
         cal.set(Calendar.MINUTE, 59);
         cal.set(Calendar.SECOND, 59);
         return cal.getTime();
@@ -434,35 +438,64 @@ public abstract class BaseCommandlineTool
 
     public static enum LogLevel
     {
-        all("+3", "3"), trace("+2", "2"), debug("+1", "1"), info("0"), warn("-1"), error("-2"), fatal("-3"), off("-4");
+        all("+5", "5"), finest("+4", "4"), finer("+3", "3"), fine("+2", "2", "debug"), config("+1", "1"),
+        info("0"), warning("-1"), severe("-2"), off("-3");
 
         private LogLevel(final String... aliases) {
             EnumAliasMap.singleton().addAliases(this, aliases);
         }
 
-        public Level toLog4JLevel()
+        public Level toLevel()
         {
             switch (this)
             {
                 case all :
                     return Level.ALL;
-                case trace :
-                    return Level.TRACE;
-                case debug :
-                    return Level.DEBUG;
+                case finest :
+                    return Level.FINEST;
+                case finer :
+                    return Level.FINER;
+                case fine :
+                    return Level.FINE;
+                case config :
+                    return Level.CONFIG;
                 case info :
                     return Level.INFO;
-                case warn :
-                    return Level.WARN;
-                case error :
-                    return Level.ERROR;
-                case fatal :
-                    return Level.FATAL;
+                case warning :
+                    return Level.WARNING;
+                case severe :
+                    return Level.SEVERE;
                 case off :
                     return Level.OFF;
                 default :
                     return null;
             }
+        }
+    }
+
+    private static class SystemOutHandler extends Handler
+    {
+        public SystemOutHandler(Level level)
+        {
+            setLevel(level);
+        }
+
+        @Override
+        public void close() throws SecurityException
+        {
+            flush();
+        }
+
+        @Override
+        public void flush()
+        {
+            System.out.flush();
+        }
+
+        @Override
+        public void publish(LogRecord record)
+        {
+            System.out.println(record.getMessage());
         }
     }
 
