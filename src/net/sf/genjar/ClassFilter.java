@@ -107,8 +107,7 @@ public class ClassFilter extends DataType
     {
         project = proj;
 
-        // you really do NOT want these included in your
-        // jar - if you do, then spcify 'em as includes
+        // you really do NOT want these included in your jar
         addExcludePattern("java.");
         addExcludePattern("javax.");
         addExcludePattern("sun.");
@@ -208,4 +207,3 @@ public class ClassFilter extends DataType
         project.log("Exclude:" + pattern, Project.MSG_DEBUG);
     }
 }
-// vi:set ts=4 sw=4:

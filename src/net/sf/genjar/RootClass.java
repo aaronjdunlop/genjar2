@@ -48,7 +48,6 @@
  */
 package net.sf.genjar;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -137,12 +136,11 @@ public class RootClass
     }
 
     /**
-     * Generates a list of all classes upon which this/these class is dependent.
+     * Generates a list of all classes upon which this class is dependent.
      *
-     * @param gj Description of the Parameter
-     * @throws IOException Description of the Exception
+     * @param gj Target
      */
-    public void resolve(GenJar gj) throws IOException
+    public void resolve(GenJar gj)
     {
         // TODO: We really want to do this sometime before resolve...
         for (FileSet fileset : filesets)

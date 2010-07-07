@@ -97,8 +97,10 @@ public class GenJar extends Jar
     private final List<FileSet> groupfilesets = new ArrayList<FileSet>();
 
     private Path classpath = null;
+    private Path runtimeClasspath = null;
     private ClassFilter classFilter = null;
     private final List<BaseResolver> resolvers = new LinkedList<BaseResolver>();
+    private final List<BaseResolver> runtimeClasspathResolvers = new LinkedList<BaseResolver>();
 
     /** jar index is JDK 1.3+ only */
     private boolean index = true;
@@ -133,15 +135,37 @@ public class GenJar extends Jar
     }
 
     /**
-     * Sets the Classpathref attribute.
+     * Sets the <classpathref> attribute.
      *
-     * @param r The new classpathRef.
+     * @param r The new classpath ref.
      */
     public void setClasspathRef(Reference r)
     {
         Path cp = new Path(getProject());
         cp.setRefid(r);
         addClasspath(cp);
+    }
+
+    /**
+     * Adds a runtime classpath (<runtimeclasspath>)
+     *
+     * @param path
+     */
+    public void addRuntimeClasspath(Path path)
+    {
+        this.runtimeClasspath = path;
+    }
+
+    /**
+     * Sets the <untimeclasspathref> attribute.
+     *
+     * @param r The new classpath ref.
+     */
+    public void setRuntimeClasspathRef(Reference r)
+    {
+        Path cp = new Path(getProject());
+        cp.setRefid(r);
+        addRuntimeClasspath(cp);
     }
 
     /**
@@ -169,7 +193,7 @@ public class GenJar extends Jar
     }
 
     /**
-     * Adds a root class.
+     * Adds a root class (<class>).
      */
     public void addClass(RootClass rootClass)
     {
@@ -177,7 +201,7 @@ public class GenJar extends Jar
     }
 
     /**
-     * Adds a contained FileSet
+     * Adds a contained FileSet (<fileset>)
      */
     @Override
     public void addFileset(FileSet fs)
@@ -186,7 +210,7 @@ public class GenJar extends Jar
     }
 
     /**
-     * Adds a contained ZipFileSet
+     * Adds a contained ZipFileSet (<zipfileset>)
      */
     @Override
     public void addZipfileset(ZipFileSet fs)
@@ -195,7 +219,7 @@ public class GenJar extends Jar
     }
 
     /**
-     * Adds a contained ZipGroupFileSet
+     * Adds a contained ZipGroupFileSet (<zipgroupfileset>)
      */
     public void addZipgroupfileset(FileSet fs)
     {
@@ -294,14 +318,7 @@ public class GenJar extends Jar
 
         for (final RootClass rc : rootClasses)
         {
-            try
-            {
-                rc.resolve(this);
-            }
-            catch (IOException ioe)
-            {
-                throw new BuildException("Unable to resolve: ", ioe, getLocation());
-            }
+            rc.resolve(this);
 
             //
             // before adding a new jarspec - see if it already exists
@@ -351,12 +368,18 @@ public class GenJar extends Jar
                 ze = resolveEntry(jarEntry);
                 if (ze == null)
                 {
+                    // Try to resolve in runtime-classpath
+                    if (inRuntimeClasspath(jarEntry))
+                    {
+                        continue;
+                    }
+
                     getProject().log("Unable to locate previously resolved resource", Project.MSG_ERR);
                     getProject().log("       Jar Name:" + jarEntry, Project.MSG_ERR);
                     throw new BuildException("Jar component not found (" + jarEntry + ')', getLocation());
                 }
                 final InputStream is = ze.getInputStream();
-                getProject().log("Adding: " + ze.getName(), Project.MSG_VERBOSE);
+                getProject().log("Archiving: " + ze.getName(), Project.MSG_VERBOSE);
 
                 zOut.putNextEntry(ze);
                 for (int read = is.read(buf); read != -1; read = is.read(buf))
@@ -520,23 +543,44 @@ public class GenJar extends Jar
     }
 
     /**
-     * Description of the Method
+     * Finds a class file in genjar's classpath, searching jars and filesystem directories.
      *
-     * @param jarEntry Description of the Parameter
-     * @return Description of the Return Value
-     * @throws IOException Description of the Exception
+     *
+     * @param classfileName Class name to resolve
+     * @return ZipEntry of resolved class location, or null if not found
+     * @throws IOException if an I/O error occurs
      */
-    private ZipEntry resolveEntry(String jarEntry) throws IOException
+    private ZipEntry resolveEntry(String classfileName) throws IOException
     {
         for (BaseResolver resolver : resolvers)
         {
-            final ZipEntry ze = resolver.resolve(jarEntry);
+            final ZipEntry ze = resolver.resolve(classfileName);
             if (ze != null)
             {
                 return ze;
             }
         }
         return null;
+    }
+
+    /**
+     * Returns true if the specified class file is found in a library specified as runtime
+     * classpath. Jars in the runtime classpath are included in the generated META-INF/MANIFEST.MF.
+     *
+     * @param classfileName
+     * @return true if the specified class file is found in a runtime library
+     * @throws IOException
+     */
+    private boolean inRuntimeClasspath(String classfileName) throws IOException
+    {
+        for (BaseResolver resolver : runtimeClasspathResolvers)
+        {
+            if (resolver.resolve(classfileName) != null)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -557,35 +601,7 @@ public class GenJar extends Jar
      */
     private void initResolvers() throws IOException
     {
-        for (final String entry : classpath.list())
-        {
-            final File f = new File(entry);
-
-            if (!f.exists())
-            {
-                continue;
-            }
-
-            final String suffix = entry.substring(entry.length() - 4);
-            if (suffix.equalsIgnoreCase(".jar") || suffix.equalsIgnoreCase(".zip"))
-            {
-                ZipFileSet zfs = new ZipFileSet();
-                zfs.setSrc(f);
-                zfs.setProject(getProject());
-                resolvers.add(new ArchiveResolver(zfs));
-            }
-            else if (f.isDirectory())
-            {
-                FileSet fs = new FileSet();
-                fs.setDir(f);
-                fs.setProject(getProject());
-                resolvers.add(new FileResolver(fs));
-            }
-            else
-            {
-                throw new BuildException(f.getName() + " is not a valid classpath component", getLocation());
-            }
-        }
+        resolvers.addAll(initResolvers(classpath));
 
         for (final FileSet fs : filesets)
         {
@@ -598,6 +614,49 @@ public class GenJar extends Jar
                 resolvers.add(new FileResolver(fs));
             }
         }
+
+        runtimeClasspathResolvers.addAll(initResolvers(runtimeClasspath));
+    }
+
+    private List<BaseResolver> initResolvers(Path path) throws IOException
+    {
+        final List<BaseResolver> tempResolvers = new ArrayList<BaseResolver>();
+
+        if (path == null)
+        {
+            return tempResolvers;
+        }
+
+        for (final String classpathEntry : path.list())
+        {
+            final File f = new File(classpathEntry);
+
+            if (!f.exists())
+            {
+                continue;
+            }
+
+            final String suffix = classpathEntry.substring(classpathEntry.length() - 4);
+            if (suffix.equalsIgnoreCase(".jar") || suffix.equalsIgnoreCase(".zip"))
+            {
+                ZipFileSet zfs = new ZipFileSet();
+                zfs.setSrc(f);
+                zfs.setProject(getProject());
+                tempResolvers.add(new ArchiveResolver(zfs));
+            }
+            else if (f.isDirectory())
+            {
+                FileSet fs = new FileSet();
+                fs.setDir(f);
+                fs.setProject(getProject());
+                tempResolvers.add(new FileResolver(fs));
+            }
+            else
+            {
+                throw new BuildException(f.getName() + " is not a valid classpath component", getLocation());
+            }
+        }
+        return tempResolvers;
     }
 
     /**
