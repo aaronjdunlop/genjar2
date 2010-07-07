@@ -69,42 +69,91 @@ public abstract class BaseCommandlineTool
     protected Exception exception;
 
     protected final static SimpleDateFormat COMMANDLINE_DATE_FORMATS[] = new SimpleDateFormat[] {
-        // Dot-separated, with time
-        new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS.ZZZ"),
-        new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS"),
-        new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss"),
-        new SimpleDateFormat("yyyy.MM.dd.HH.mm"),
-        new SimpleDateFormat("yyyy.MM.dd.HH.mm"),
+                                                                                                 // Dot-separated,
+                                                                                                 // with
+                                                                                                 // time
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd.HH.mm.ss.SSS.ZZZ"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd.HH.mm.ss.SSS"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd.HH.mm.ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd.HH.mm"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd.HH.mm"),
 
-        // Dot- and colon-separated, with time
-        new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS ZZZ"), new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS"),
-        new SimpleDateFormat("yyyy.MM.dd HH:mm:ss"), new SimpleDateFormat("yyyy.MM.dd HH:mm"),
+                                                                                                 // Dot-
+                                                                                                 // and
+                                                                                                 // colon-separated,
+                                                                                                 // with
+                                                                                                 // time
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd HH:mm:ss.SSS ZZZ"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd HH:mm:ss.SSS"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd HH:mm"),
 
-        new SimpleDateFormat("MM.dd.yyyy HH:mm:ss"),
-        new SimpleDateFormat("MM.dd.yy HH:mm:ss"),
-        new SimpleDateFormat("MM.dd HH:mm:ss"),
-        new SimpleDateFormat("MM.dd.yyyy HH:mm"),
-        new SimpleDateFormat("MM.dd.yy HH:mm"),
-        new SimpleDateFormat("MM.dd HH:mm"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd.yyyy HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd.yy HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd.yyyy HH:mm"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd.yy HH:mm"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd HH:mm"),
 
-        // Dot-separated, without time
-        new SimpleDateFormat("yyyy.MM.dd"),
-        new SimpleDateFormat("MM.dd.yyyy"),
-        new SimpleDateFormat("MM.dd.yy"),
-        new SimpleDateFormat("MM.dd"),
+                                                                                                 // Dot-separated,
+                                                                                                 // without
+                                                                                                 // time
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy.MM.dd"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd.yyyy"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd.yy"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM.dd"),
 
-        // Slash-separated, with time
-        new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"), new SimpleDateFormat("MM/dd/yy HH:mm:ss"),
-        new SimpleDateFormat("MM/dd HH:mm:ss"), new SimpleDateFormat("MM/dd/yyyy HH:mm"),
-        new SimpleDateFormat("MM/dd/yy HH:mm"), new SimpleDateFormat("MM/dd HH:mm"),
+                                                                                                 // Slash-separated,
+                                                                                                 // with
+                                                                                                 // time
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd/yyyy HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd/yy HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd HH:mm:ss"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd/yyyy HH:mm"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd/yy HH:mm"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd HH:mm"),
 
-        // Slash-separated, without time
-        new SimpleDateFormat("yyyy/MM/dd"), new SimpleDateFormat("MM/dd/yyyy"), new SimpleDateFormat("MM/dd/yy"),
-        new SimpleDateFormat("MM/dd")};
+                                                                                                 // Slash-separated,
+                                                                                                 // without
+                                                                                                 // time
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "yyyy/MM/dd"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd/yyyy"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd/yy"),
+                                                                                                 new SimpleDateFormat(
+                                                                                                     "MM/dd")};
 
     static
     {
-        for (final SimpleDateFormat formatter : COMMANDLINE_DATE_FORMATS) {
+        for (final SimpleDateFormat formatter : COMMANDLINE_DATE_FORMATS)
+        {
             formatter.setLenient(false);
         }
     }
@@ -139,14 +188,26 @@ public abstract class BaseCommandlineTool
      *
      * @param args
      */
+    @SuppressWarnings("unchecked")
     public final static void run(final String[] args)
     {
         try
         {
-            final BaseCommandlineTool tool = (BaseCommandlineTool) Class.forName(
-                Thread.currentThread().getStackTrace()[2].getClassName()).getConstructor(new Class[] {}).newInstance(
-                new Object[] {});
-            tool.runInternal(args);
+            Class<? extends BaseCommandlineTool> c = (Class<? extends BaseCommandlineTool>) Class.forName(Thread
+                .currentThread().getStackTrace()[2].getClassName());
+
+            // For Scala objects
+            try
+            {
+                BaseCommandlineTool tool = (BaseCommandlineTool) c.getField("MODULE$").get(null);
+                tool.runInternal(args);
+            }
+            catch (final Exception e)
+            {
+                // For Java
+                final BaseCommandlineTool tool = c.getConstructor(new Class[] {}).newInstance(new Object[] {});
+                tool.runInternal(args);
+            }
         }
         catch (final Exception e)
         {
@@ -167,10 +228,11 @@ public abstract class BaseCommandlineTool
         {
             parser.parseArgument(args);
 
-            // Configure java.util.logging to log to the console, and only the message actually logged,
-            // without any header or formatting.
+            // Configure java.util.logging to log to the console, and only the message actually
+            // logged, without any header or formatting.
             logger = Logger.getLogger("cltool");
-            for (Handler h : logger.getHandlers()) {
+            for (Handler h : logger.getHandlers())
+            {
                 logger.removeHandler(h);
             }
             logger.setUseParentHandlers(false);
@@ -289,7 +351,8 @@ public abstract class BaseCommandlineTool
             is = new GZIPInputStream(is);
         }
         final BufferedReader r = new BufferedReader(new InputStreamReader(is));
-        for (int c = r.read(); c != 0; c = r.read()) {
+        for (int c = r.read(); c != 0; c = r.read())
+        {
             sb.append((char) c);
         }
         return sb.toString();
@@ -438,10 +501,18 @@ public abstract class BaseCommandlineTool
 
     public static enum LogLevel
     {
-        all("+5", "5"), finest("+4", "4"), finer("+3", "3"), fine("+2", "2", "debug"), config("+1", "1"),
-        info("0"), warning("-1"), severe("-2"), off("-3");
+        all("+5", "5"),
+        finest("+4", "4"),
+        finer("+3", "3"),
+        fine("+2", "2", "debug"),
+        config("+1", "1"),
+        info("0"),
+        warning("-1"),
+        severe("-2"),
+        off("-3");
 
-        private LogLevel(final String... aliases) {
+        private LogLevel(final String... aliases)
+        {
             EnumAliasMap.singleton().addAliases(this, aliases);
         }
 
@@ -496,50 +567,6 @@ public abstract class BaseCommandlineTool
         public void publish(LogRecord record)
         {
             System.out.println(record.getMessage());
-        }
-    }
-
-    public static class MemoryOptionHandler extends OneArgumentOptionHandler<Integer>
-    {
-        public MemoryOptionHandler(final CmdLineParser parser, final OptionDef option,
-            final Setter<? super Integer> setter)
-        {
-            super(parser, option, setter);
-        }
-
-        @Override
-        public Integer parse(String s) throws CmdLineException
-        {
-            int multiplier = 1;
-            if (s.endsWith("m"))
-            {
-                multiplier = 1024 * 1024;
-                s = s.substring(0, s.length() - 1);
-            }
-            else if (s.endsWith("k"))
-            {
-                multiplier = 1024;
-                s = s.substring(0, s.length() - 1);
-            }
-            else if (s.endsWith("g"))
-            {
-                multiplier = 1024 * 1024 * 1024;
-                s = s.substring(0, s.length() - 1);
-            }
-            try
-            {
-                return new Integer(Integer.parseInt(s) * multiplier);
-            }
-            catch (final NumberFormatException e)
-            {
-                throw new CmdLineException(owner, "Error parsing memory argument: " + s);
-            }
-        }
-
-        @Override
-        public String getDefaultMetaVariable()
-        {
-            return "amount";
         }
     }
 }

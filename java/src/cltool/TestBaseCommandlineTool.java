@@ -459,7 +459,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
 
     private static class WithMemoryField extends BaseCommandlineTool
     {
-        @Argument(index = 0, required = true, usage = "Memory value", metaVar = "value", handler = MemoryOptionHandler.class)
+        @Argument(index = 0, required = true, usage = "Memory value", metaVar = "value")
         protected int memory;
 
         @Override
