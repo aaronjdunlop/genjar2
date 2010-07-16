@@ -42,8 +42,9 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
             // Single-threaded version is simple...
             for (String line = br.readLine(); line != null; line = br.readLine())
             {
-                final Callable<String> lineTask = lineTask(line);
-                String result = lineTask.call();
+                final FutureTask<String> lineTask = lineTask(line);
+                lineTask.run();
+                final String result = lineTask.get();
                 if (result.length() > 0)
                 {
                     System.out.println(result);
@@ -63,8 +64,7 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
 
             for (String line = br.readLine(); line != null; line = br.readLine())
             {
-                final Callable<String> lineTask = lineTask(line);
-                final FutureTask<String> futureTask = new FutureTask<String>(lineTask);
+                final FutureTask<String> futureTask = lineTask(line);
                 outputQueue.add(futureTask);
                 executor.execute(futureTask);
             }
@@ -82,10 +82,11 @@ public abstract class LinewiseCommandlineTool extends BaseCommandlineTool
     /**
      * @return a {@link FutureTask} which will process an input line and return a String as output.
      */
-    protected abstract Callable<String> lineTask(String line);
+    protected abstract FutureTask<String> lineTask(String line);
 
     private static class OutputThread extends Thread
     {
+
         private final BlockingQueue<FutureTask<String>> queue;
 
         public OutputThread(final BlockingQueue<FutureTask<String>> queue)

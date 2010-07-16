@@ -297,7 +297,7 @@ public class TestBaseCommandlineTool extends ToolTestCase
 
         // And test a parse failure
         final String output = executeTool(tool, "2z", "");
-        assertTrue(output.startsWith("Error parsing memory argument: 2z"));
+        assertTrue(output.startsWith("Option \"value\" takes an operand"));
     }
 
     /**

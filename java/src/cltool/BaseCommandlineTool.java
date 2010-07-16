@@ -27,17 +27,17 @@ import org.kohsuke.args4j.spi.OneArgumentOptionHandler;
 import org.kohsuke.args4j.spi.Setter;
 
 /**
- * Base class for any tools which should be executable from the command-line. This class implements
- * the majority of the functionality needed to execute java code as a 'standard' command-line tool,
- * including parsing command-line options and reading input from either STDIN or from multiple files
- * specified on the command-line.
+ * Base class for any tools which should be executable from the command-line. This class implements the
+ * majority of the functionality needed to execute java code as a 'standard' command-line tool, including
+ * parsing command-line options and reading input from either STDIN or from multiple files specified on the
+ * command-line.
  *
  * Unfortunately, it doesn't appear possible to determine the actual class being executed within
- * <code>main(String[])</code>, so each subclass must implement a <code>main(String[])</code> method
- * and call {@link BaseCommandlineTool#run(String[])} from within it.
+ * <code>main(String[])</code>, so each subclass must implement a <code>main(String[])</code> method and call
+ * {@link BaseCommandlineTool#run(String[])} from within it.
  *
- * In addition, subclasses should include a no-argument constructor and the abstract methods
- * declared here in the superclass.
+ * In addition, subclasses should include a no-argument constructor and the abstract methods declared here in
+ * the superclass.
  *
  *
  * @author Aaron Dunlop
@@ -45,12 +45,16 @@ import org.kohsuke.args4j.spi.Setter;
  *
  *        $Id$
  */
-public abstract class BaseCommandlineTool
-{
-    /** Non-threadable tools use a single thread */
-    @Option(name = "-xt", metaVar = "threads", usage = "Maximum threads", requiredAnnotations = {Threadable.class})
-    protected int maxThreads = getClass().getAnnotation(Threadable.class) != null ? Runtime.getRuntime()
-        .availableProcessors() : 1;
+public abstract class BaseCommandlineTool {
+
+    /**
+     * Non-threadable tools use a single thread; {@link Threadable} tools default to either the optional
+     * 'defaultThreads' parameter or the number of CPUs
+     */
+    @Option(name = "-xt", metaVar = "threads", usage = "Maximum threads", requiredAnnotations = { Threadable.class })
+    protected int maxThreads = getClass().getAnnotation(Threadable.class) != null ? (getClass()
+        .getAnnotation(Threadable.class).defaultThreads() != 0 ? getClass().getAnnotation(Threadable.class)
+        .defaultThreads() : Runtime.getRuntime().availableProcessors()) : 1;
 
     @Option(name = "-out", metaVar = "filename", usage = "Output file")
     protected File outputFile = null;
@@ -69,91 +73,45 @@ public abstract class BaseCommandlineTool
     protected Exception exception;
 
     protected final static SimpleDateFormat COMMANDLINE_DATE_FORMATS[] = new SimpleDateFormat[] {
-                                                                                                 // Dot-separated,
-                                                                                                 // with
-                                                                                                 // time
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd.HH.mm.ss.SSS.ZZZ"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd.HH.mm.ss.SSS"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd.HH.mm.ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd.HH.mm"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd.HH.mm"),
+            // Dot-separated, with time
+            new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS.ZZZ"),
+            new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS"),
+            new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss"),
+            new SimpleDateFormat("yyyy.MM.dd.HH.mm"),
+            new SimpleDateFormat("yyyy.MM.dd.HH.mm"),
 
-                                                                                                 // Dot-
-                                                                                                 // and
-                                                                                                 // colon-separated,
-                                                                                                 // with
-                                                                                                 // time
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd HH:mm:ss.SSS ZZZ"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd HH:mm:ss.SSS"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd HH:mm"),
+            // Dot- and colon-separated, with time
+            new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS ZZZ"),
+            new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS"),
+            new SimpleDateFormat("yyyy.MM.dd HH:mm:ss"),
+            new SimpleDateFormat("yyyy.MM.dd HH:mm"),
 
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd.yyyy HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd.yy HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd.yyyy HH:mm"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd.yy HH:mm"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd HH:mm"),
+            new SimpleDateFormat("MM.dd.yyyy HH:mm:ss"),
+            new SimpleDateFormat("MM.dd.yy HH:mm:ss"),
+            new SimpleDateFormat("MM.dd HH:mm:ss"),
+            new SimpleDateFormat("MM.dd.yyyy HH:mm"),
+            new SimpleDateFormat("MM.dd.yy HH:mm"),
+            new SimpleDateFormat("MM.dd HH:mm"),
 
-                                                                                                 // Dot-separated,
-                                                                                                 // without
-                                                                                                 // time
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy.MM.dd"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd.yyyy"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd.yy"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM.dd"),
+            // Dot-separated, without time
+            new SimpleDateFormat("yyyy.MM.dd"),
+            new SimpleDateFormat("MM.dd.yyyy"),
+            new SimpleDateFormat("MM.dd.yy"),
+            new SimpleDateFormat("MM.dd"),
 
-                                                                                                 // Slash-separated,
-                                                                                                 // with
-                                                                                                 // time
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd/yyyy HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd/yy HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd HH:mm:ss"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd/yyyy HH:mm"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd/yy HH:mm"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd HH:mm"),
+            // Slash-separated, with time
+            new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"), new SimpleDateFormat("MM/dd/yy HH:mm:ss"),
+            new SimpleDateFormat("MM/dd HH:mm:ss"),
+            new SimpleDateFormat("MM/dd/yyyy HH:mm"),
+            new SimpleDateFormat("MM/dd/yy HH:mm"),
+            new SimpleDateFormat("MM/dd HH:mm"),
 
-                                                                                                 // Slash-separated,
-                                                                                                 // without
-                                                                                                 // time
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "yyyy/MM/dd"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd/yyyy"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd/yy"),
-                                                                                                 new SimpleDateFormat(
-                                                                                                     "MM/dd")};
+            // Slash-separated, without time
+            new SimpleDateFormat("yyyy/MM/dd"), new SimpleDateFormat("MM/dd/yyyy"),
+            new SimpleDateFormat("MM/dd/yy"), new SimpleDateFormat("MM/dd") };
 
-    static
-    {
-        for (final SimpleDateFormat formatter : COMMANDLINE_DATE_FORMATS)
-        {
+    static {
+        for (final SimpleDateFormat formatter : COMMANDLINE_DATE_FORMATS) {
             formatter.setLenient(false);
         }
     }
@@ -161,62 +119,64 @@ public abstract class BaseCommandlineTool
     /**
      * Default constructor
      */
-    protected BaseCommandlineTool()
-    {}
+    protected BaseCommandlineTool() {
+    }
 
     /**
-     * Perform any tool-specific setup. This method will only be called once, even if the tool is
-     * threadable and {@link #run()} is called by multiple threads.
+     * Perform any tool-specific setup. This method will only be called once, even if the tool is threadable
+     * and {@link #run()} is called by multiple threads.
      *
-     * @param parser The command-line parser which parsed the options. Use this parser instance if
-     *            an overriding implementation needs to throw a {@link CmdLineException}.
+     * @param parser
+     *            The command-line parser which parsed the options. Use this parser instance if an overriding
+     *            implementation needs to throw a {@link CmdLineException}.
      */
-    protected void setup(final CmdLineParser parser) throws Exception
-    {}
+    protected void setup(final CmdLineParser parser) throws Exception {
+    }
 
     /**
-     * Execute the tool's core functionality. If the tool is threadable, this method should be
-     * thread-safe and reentrant.
+     * Perform any tool-specific setup. This method will only be called once, even if the tool is threadable
+     * and {@link #run()} is called by multiple threads.
+     */
+    protected void cleanup() {
+    }
+
+
+    /**
+     * Execute the tool's core functionality. If the tool is threadable, this method should be thread-safe and
+     * reentrant.
      *
      * @throws Exception
      */
     protected abstract void run() throws Exception;
 
     /**
-     * Parses command-line arguments and executes the tool. This method should be called from within
-     * the main() methods of all subclasses.
+     * Parses command-line arguments and executes the tool. This method should be called from within the
+     * main() methods of all subclasses.
      *
      * @param args
      */
     @SuppressWarnings("unchecked")
-    public final static void run(final String[] args)
-    {
-        try
-        {
-            Class<? extends BaseCommandlineTool> c = (Class<? extends BaseCommandlineTool>) Class.forName(Thread
-                .currentThread().getStackTrace()[2].getClassName());
+    public final static void run(final String[] args) {
+        try {
+            Class<? extends BaseCommandlineTool> c = (Class<? extends BaseCommandlineTool>) Class
+                .forName(Thread.currentThread().getStackTrace()[2].getClassName());
 
             // For Scala objects
-            try
-            {
+            try {
                 BaseCommandlineTool tool = (BaseCommandlineTool) c.getField("MODULE$").get(null);
                 tool.runInternal(args);
-            }
-            catch (final Exception e)
-            {
+            } catch (final Exception e) {
                 // For Java
-                final BaseCommandlineTool tool = c.getConstructor(new Class[] {}).newInstance(new Object[] {});
+                final BaseCommandlineTool tool = c.getConstructor(new Class[] {})
+                    .newInstance(new Object[] {});
                 tool.runInternal(args);
             }
-        }
-        catch (final Exception e)
-        {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
     }
 
-    protected final void runInternal(final String[] args) throws Exception
-    {
+    protected final void runInternal(final String[] args) throws Exception {
         final long startTime = System.currentTimeMillis();
 
         CmdLineParser.registerHandler(Date.class, DateOptionHandler.class);
@@ -224,15 +184,13 @@ public abstract class BaseCommandlineTool
 
         final CmdLineParser parser = new CmdLineParser(this);
 
-        try
-        {
+        try {
             parser.parseArgument(args);
 
             // Configure java.util.logging to log to the console, and only the message actually
             // logged, without any header or formatting.
             logger = Logger.getLogger("cltool");
-            for (Handler h : logger.getHandlers())
-            {
+            for (Handler h : logger.getHandlers()) {
                 logger.removeHandler(h);
             }
             logger.setUseParentHandlers(false);
@@ -240,28 +198,21 @@ public abstract class BaseCommandlineTool
             logger.addHandler(new SystemOutHandler(l));
             logger.setLevel(l);
 
-            if (outputFile != null)
-            {
-                try
-                {
+            if (outputFile != null) {
+                try {
                     System.setOut(new PrintStream(outputFile));
-                }
-                catch (final FileNotFoundException e)
-                {
+                } catch (final FileNotFoundException e) {
                     System.err.println("Unable to open " + outputFile + " : " + e.getMessage());
                     return;
                 }
             }
 
             setup(null);
-        }
-        catch (final CmdLineException e)
-        {
+        } catch (final CmdLineException e) {
             System.err.println(e.getMessage());
             String classname = getClass().getName();
             classname = classname.substring(classname.lastIndexOf('.') + 1);
-            if (classname.endsWith("$"))
-            {
+            if (classname.endsWith("$")) {
                 classname = classname.substring(0, classname.length() - 1);
             }
             System.err.print("\nUsage: " + classname);
@@ -271,36 +222,32 @@ public abstract class BaseCommandlineTool
         }
 
         // Handle arguments
-        if (inputFiles.length > 0 && inputFiles[0].length() > 0)
-        {
+        if (inputFiles.length > 0 && inputFiles[0].length() > 0) {
             // Handle one or more input files from the command-line, translating gzipped
             // files as appropriate.
             // TODO: Re-route multiple files into a single InputStream so we can execute the tool a
             // single time.
-            for (final Object filename : inputFiles)
-            {
+            for (final Object filename : inputFiles) {
                 final InputStream is = fileAsInputStream((String) filename);
                 System.setIn(is);
                 run();
                 is.close();
             }
-        }
-        else
-        {
+        } else {
             // Handle input on STDIN
             run();
         }
 
-        if (exception != null)
-        {
+        if (exception != null) {
             throw exception;
         }
 
-        if (time)
-        {
+        if (time) {
             System.out.format("Execution Time: %dms\n", System.currentTimeMillis() - startTime);
         }
 
+        cleanup();
+        System.out.flush();
         System.out.close();
     }
 
@@ -311,18 +258,15 @@ public abstract class BaseCommandlineTool
      * @return InputStream
      * @throws IOException
      */
-    protected InputStream fileAsInputStream(final String filename) throws IOException
-    {
+    protected InputStream fileAsInputStream(final String filename) throws IOException {
         final File f = new File(filename);
-        if (!f.exists())
-        {
+        if (!f.exists()) {
             System.err.println("Unable to find file: " + filename);
             System.exit(-1);
         }
 
         InputStream is = new FileInputStream(filename);
-        if (filename.endsWith(".gz"))
-        {
+        if (filename.endsWith(".gz")) {
             is = new GZIPInputStream(is);
         }
         return is;
@@ -335,24 +279,20 @@ public abstract class BaseCommandlineTool
      * @return InputStream
      * @throws IOException
      */
-    protected String fileAsString(final String filename) throws IOException
-    {
+    protected String fileAsString(final String filename) throws IOException {
         final File f = new File(filename);
-        if (!f.exists())
-        {
+        if (!f.exists()) {
             System.err.println("Unable to find file: " + filename);
             System.exit(-1);
         }
 
         final StringBuilder sb = new StringBuilder(10240);
         InputStream is = new FileInputStream(filename);
-        if (filename.endsWith(".gz"))
-        {
+        if (filename.endsWith(".gz")) {
             is = new GZIPInputStream(is);
         }
         final BufferedReader r = new BufferedReader(new InputStreamReader(is));
-        for (int c = r.read(); c != 0; c = r.read())
-        {
+        for (int c = r.read(); c != 0; c = r.read()) {
             sb.append((char) c);
         }
         return sb.toString();
@@ -361,8 +301,7 @@ public abstract class BaseCommandlineTool
     /**
      * @return This morning at 00:00:00 local time as a {@link Date}
      */
-    protected Date todayMidnight()
-    {
+    protected Date todayMidnight() {
         final Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
@@ -373,8 +312,7 @@ public abstract class BaseCommandlineTool
     /**
      * @return Yesterday at 00:00:00 local time as a {@link Date}
      */
-    protected Date yesterdayMidnight()
-    {
+    protected Date yesterdayMidnight() {
         final Calendar cal = Calendar.getInstance();
         cal.set(Calendar.DATE, cal.get(Calendar.DATE) - 1);
         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -386,8 +324,7 @@ public abstract class BaseCommandlineTool
     /**
      * @return Yesterday at 23:59:59 local time as a {@link Date}
      */
-    protected Date yesterday235959()
-    {
+    protected Date yesterday235959() {
         final Calendar cal = Calendar.getInstance();
         cal.set(Calendar.DATE, cal.get(Calendar.DATE) - 1);
         cal.set(Calendar.HOUR_OF_DAY, 23);
@@ -396,25 +333,21 @@ public abstract class BaseCommandlineTool
         return cal.getTime();
     }
 
-    protected static Calendar parseDate(final CmdLineParser parser, final String date) throws CmdLineException
-    {
+    protected static Calendar parseDate(final CmdLineParser parser, final String date)
+            throws CmdLineException {
         final Calendar c = Calendar.getInstance();
         final int year = c.get(Calendar.YEAR);
 
-        for (final SimpleDateFormat dateFormat : COMMANDLINE_DATE_FORMATS)
-        {
-            try
-            {
+        for (final SimpleDateFormat dateFormat : COMMANDLINE_DATE_FORMATS) {
+            try {
                 final Date d = dateFormat.parse(date);
                 c.setTime(d);
-                if (c.get(Calendar.YEAR) == 1970)
-                {
+                if (c.get(Calendar.YEAR) == 1970) {
                     c.set(Calendar.YEAR, year);
                 }
                 return c;
+            } catch (final java.text.ParseException ignore) {
             }
-            catch (final java.text.ParseException ignore)
-            {}
         }
 
         throw new CmdLineException(parser, "Error parsing date: " + date);
@@ -423,31 +356,27 @@ public abstract class BaseCommandlineTool
     /**
      * @return Logger instance
      */
-    public static Logger getLogger()
-    {
+    public static Logger getLogger() {
         return logger;
     }
 
     /**
      * Parses a date into a {@link java.util.Calendar}
      */
-    public static class CalendarOptionHandler extends OneArgumentOptionHandler<Calendar>
-    {
+    public static class CalendarOptionHandler extends OneArgumentOptionHandler<Calendar> {
+
         public CalendarOptionHandler(final CmdLineParser parser, final OptionDef option,
-            final Setter<? super Calendar> setter)
-        {
+                final Setter<? super Calendar> setter) {
             super(parser, option, setter);
         }
 
         @Override
-        public Calendar parse(final String s) throws CmdLineException
-        {
+        public Calendar parse(final String s) throws CmdLineException {
             return BaseCommandlineTool.parseDate(owner, s.toLowerCase());
         }
 
         @Override
-        public String getDefaultMetaVariable()
-        {
+        public String getDefaultMetaVariable() {
             return "date";
         }
     }
@@ -455,22 +384,20 @@ public abstract class BaseCommandlineTool
     /**
      * Parses a date into a {@link java.util.Date}
      */
-    public static class DateOptionHandler extends OneArgumentOptionHandler<Date>
-    {
-        public DateOptionHandler(final CmdLineParser parser, final OptionDef option, final Setter<? super Date> setter)
-        {
+    public static class DateOptionHandler extends OneArgumentOptionHandler<Date> {
+
+        public DateOptionHandler(final CmdLineParser parser, final OptionDef option,
+                final Setter<? super Date> setter) {
             super(parser, option, setter);
         }
 
         @Override
-        public Date parse(final String s) throws CmdLineException
-        {
+        public Date parse(final String s) throws CmdLineException {
             return BaseCommandlineTool.parseDate(owner, s.toLowerCase()).getTime();
         }
 
         @Override
-        public String getDefaultMetaVariable()
-        {
+        public String getDefaultMetaVariable() {
             return "date";
         }
     }
@@ -478,94 +405,76 @@ public abstract class BaseCommandlineTool
     /**
      * Parses a date into a long (seconds since the epoch)
      */
-    public static class TimestampOptionHandler extends OneArgumentOptionHandler<Long>
-    {
+    public static class TimestampOptionHandler extends OneArgumentOptionHandler<Long> {
+
         public TimestampOptionHandler(final CmdLineParser parser, final OptionDef option,
-            final Setter<? super Long> setter)
-        {
+                final Setter<? super Long> setter) {
             super(parser, option, setter);
         }
 
         @Override
-        public Long parse(final String s) throws CmdLineException
-        {
+        public Long parse(final String s) throws CmdLineException {
             return BaseCommandlineTool.parseDate(owner, s.toLowerCase()).getTime().getTime();
         }
 
         @Override
-        public String getDefaultMetaVariable()
-        {
+        public String getDefaultMetaVariable() {
             return "date";
         }
     }
 
-    public static enum LogLevel
-    {
-        all("+5", "5"),
-        finest("+4", "4"),
-        finer("+3", "3"),
-        fine("+2", "2", "debug"),
-        config("+1", "1"),
-        info("0"),
-        warning("-1"),
-        severe("-2"),
-        off("-3");
+    public static enum LogLevel {
+        all("+5", "5"), finest("+4", "4"), finer("+3", "3"), fine("+2", "2", "debug"), config("+1", "1"), info(
+                "0"), warning("-1"), severe("-2"), off("-3");
 
-        private LogLevel(final String... aliases)
-        {
+        private LogLevel(final String... aliases) {
             EnumAliasMap.singleton().addAliases(this, aliases);
         }
 
-        public Level toLevel()
-        {
-            switch (this)
-            {
-                case all :
+        public Level toLevel() {
+            switch (this) {
+                case all:
                     return Level.ALL;
-                case finest :
+                case finest:
                     return Level.FINEST;
-                case finer :
+                case finer:
                     return Level.FINER;
-                case fine :
+                case fine:
                     return Level.FINE;
-                case config :
+                case config:
                     return Level.CONFIG;
-                case info :
+                case info:
                     return Level.INFO;
-                case warning :
+                case warning:
                     return Level.WARNING;
-                case severe :
+                case severe:
                     return Level.SEVERE;
-                case off :
+                case off:
                     return Level.OFF;
-                default :
+                default:
                     return null;
             }
         }
     }
 
-    private static class SystemOutHandler extends Handler
-    {
-        public SystemOutHandler(Level level)
-        {
+    private static class SystemOutHandler extends Handler {
+
+        public SystemOutHandler(Level level) {
             setLevel(level);
         }
 
         @Override
-        public void close() throws SecurityException
-        {
+        public void close() throws SecurityException {
             flush();
         }
 
         @Override
-        public void flush()
-        {
+        public void flush() {
             System.out.flush();
         }
 
         @Override
-        public void publish(LogRecord record)
-        {
+        public void publish(LogRecord record) {
             System.out.println(record.getMessage());
         }
     }
