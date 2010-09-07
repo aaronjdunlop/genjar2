@@ -8,6 +8,7 @@ import java.util.Date;
 import org.junit.Test;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.EnumAliasMap;
 import org.kohsuke.args4j.Option;
 
 import static org.junit.Assert.*;
@@ -99,13 +100,11 @@ public class TestBaseCommandlineTool extends ToolTestCase
         final StringBuilder sb = new StringBuilder();
         sb.append("Argument <args> is required\n");
         sb.append("\n");
-        sb
-            .append("Usage: TestBaseCommandlineTool$WithRequiredMultivaluedArgument [-out filename] [-time] [-v level] <args>\n");
-        sb.append(" args          : [args]\n");
-        sb.append(" -out filename : Output file\n");
-        sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
-        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
+        sb.append("Usage: TestBaseCommandlineTool$WithRequiredMultivaluedArgument [-help] [-v level] <args>\n");
+        sb.append(" args     : [args]\n");
+        sb.append(" -help    : Print detailed usage information\n");
+        sb.append(" -v level : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1; severe,-2;\n");
+        sb.append("            off,-3)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(tool, "", ""));
     }
@@ -131,29 +130,25 @@ public class TestBaseCommandlineTool extends ToolTestCase
         StringBuilder sb = new StringBuilder();
         sb.append("Argument <arg0> is required\n");
         sb.append("\n");
-        sb
-            .append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-out filename] [-time] [-v level] <arg0> <arg1> <values>\n");
-        sb.append(" arg0          : arg0\n");
-        sb.append(" arg1          : arg1\n");
-        sb.append(" values        : Other required arguments\n");
-        sb.append(" -out filename : Output file\n");
-        sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
-        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
+        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-help] [-v level] <arg0> <arg1> <values>\n");
+        sb.append(" arg0     : arg0\n");
+        sb.append(" arg1     : arg1\n");
+        sb.append(" values   : Other required arguments\n");
+        sb.append(" -help    : Print detailed usage information\n");
+        sb.append(" -v level : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1; severe,-2;\n");
+        sb.append("            off,-3)   Default = info\n");
         assertEquals(sb.toString(), executeTool(tool, "", ""));
 
         sb = new StringBuilder();
         sb.append("Argument <values> is required\n");
         sb.append("\n");
-        sb
-            .append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-out filename] [-time] [-v level] <arg0> <arg1> <values>\n");
-        sb.append(" arg0          : arg0\n");
-        sb.append(" arg1          : arg1\n");
-        sb.append(" values        : Other required arguments\n");
-        sb.append(" -out filename : Output file\n");
-        sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
-        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
+        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArgumentsAndMultivaluedArgument [-help] [-v level] <arg0> <arg1> <values>\n");
+        sb.append(" arg0     : arg0\n");
+        sb.append(" arg1     : arg1\n");
+        sb.append(" values   : Other required arguments\n");
+        sb.append(" -help    : Print detailed usage information\n");
+        sb.append(" -v level : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1; severe,-2;\n");
+        sb.append("            off,-3)   Default = info\n");
 
         assertEquals(sb.toString(), executeTool(tool, "arg1 arg2", ""));
     }
@@ -180,18 +175,17 @@ public class TestBaseCommandlineTool extends ToolTestCase
     }
 
     @Test
-    public void testUsageOutput() throws Exception
+    public void testStandardUsageOutput() throws Exception
     {
         // Test with an invalid option
         StringBuilder sb = new StringBuilder();
         sb.append("\"-badarg\" is not a valid option\n");
         sb.append("\n");
-        sb.append("Usage: TestBaseCommandlineTool$Cat [-option opt] [-out filename] [-time] [-v level] [files]\n");
-        sb.append(" -option opt   : Integer option;   Default = 2\n");
-        sb.append(" -out filename : Output file\n");
-        sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
-        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
+        sb.append("Usage: TestBaseCommandlineTool$Cat [-help] [-v level] [-option opt] [files]\n");
+        sb.append(" -help       : Print detailed usage information\n");
+        sb.append(" -v level    : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1;\n");
+        sb.append("               severe,-2; off,-3)   Default = info\n");
+        sb.append(" -option opt : Integer option;   Default = 2\n");
 
         assertEquals(sb.toString(), executeTool(new Cat(), "-badarg", ""));
 
@@ -199,17 +193,15 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb = new StringBuilder();
         sb.append("Option \"-option\" is required\n");
         sb.append("\n");
-        sb
-            .append("Usage: TestBaseCommandlineTool$WithRequiredArguments <-option value> [-out filename] [-time] [-v level] [-xt threads] <arg0> [arg1] [values]\n");
+        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArguments [-help] [-v level] [-xt threads] <-option value> <arg0> [arg1] [values]\n");
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : [other args]\n");
-        sb.append(" -option value : o\n");
-        sb.append(" -out filename : Output file\n");
-        sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
-        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
+        sb.append(" -help         : Print detailed usage information\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1;\n");
+        sb.append("                 severe,-2; off,-3)   Default = info\n");
         sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
+        sb.append(" -option value : o\n");
 
         WithRequiredArguments tool = new WithRequiredArguments();
         assertEquals(sb.toString(), executeTool(tool, "argument", ""));
@@ -219,21 +211,64 @@ public class TestBaseCommandlineTool extends ToolTestCase
         sb = new StringBuilder();
         sb.append("Argument <arg0> is required\n");
         sb.append("\n");
-        sb
-            .append("Usage: TestBaseCommandlineTool$WithRequiredArguments <-option value> [-out filename] [-time] [-v level] [-xt threads] <arg0> [arg1] [values]\n");
+        sb.append("Usage: TestBaseCommandlineTool$WithRequiredArguments [-help] [-v level] [-xt threads] <-option value> <arg0> [arg1] [values]\n");
         sb.append(" arg0          : arg0\n");
         sb.append(" arg1          : arg1\n");
         sb.append(" values        : [other args]\n");
-        sb.append(" -option value : o;   Default = foo\n");
-        sb.append(" -out filename : Output file\n");
-        sb.append(" -time         : Output execution times\n");
-        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug;\n");
-        sb.append("                 config,+1,1; info,0; warning,-1; severe,-2; off,-3)   Default = info\n");
+        sb.append(" -help         : Print detailed usage information\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1;\n");
+        sb.append("                 severe,-2; off,-3)   Default = info\n");
         sb.append(" -xt threads   : Maximum threads;   Default = 2\n");
+        sb.append(" -option value : o\n");
 
         tool = new WithRequiredArguments();
         assertEquals(sb.toString(), executeTool(tool, "-option foo", ""));
         assertEquals("foo", tool.option);
+    }
+
+    @Test
+    public void testExtendedUsageOutput() throws Exception
+    {
+        // Test with an invalid option
+        final StringBuilder sb = new StringBuilder();
+        sb.append("Usage: TestBaseCommandlineTool$Cat [-help] [-out filename] [-time] [-v level] [-option opt] [-hidden] [files]\n");
+        sb.append(" -help         : Print detailed usage information\n");
+        sb.append(" -out filename : Output file\n");
+        sb.append(" -time         : Output execution times\n");
+        sb.append(" -v level      : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1;\n");
+        sb.append("                 severe,-2; off,-3)   Default = info\n");
+        sb.append(" -option opt   : Integer option;   Default = 2\n");
+        sb.append(" -hidden       : Hidden option\n");
+
+        assertEquals(sb.toString(), executeTool(new Cat(), "-help", ""));
+    }
+
+    /**
+     * Tests line wrapping for long enum options
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testWrappedEnumUsageOutput() throws Exception
+    {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("\"-option\" is not a valid option\n");
+        sb.append("\n");
+        sb.append("Usage: TestBaseCommandlineTool$WithEnumField [-help] [-v level] [enum] [files]\n");
+        sb.append(" enum     : Enum value;   Default = VeryLongOptionNameB\n");
+        sb.append("              VeryLongOptionNameA,a\n");
+        sb.append("              VeryLongOptionNameB,b\n");
+        sb.append("              VeryLongOptionNameC,c\n");
+        sb.append("              VeryLongOptionNameD,d\n");
+        sb.append("              VeryLongOptionNameE,e\n");
+        sb.append("              VeryLongOptionNameF,f\n");
+        sb.append("              VeryLongOptionNameG,g\n");
+        sb.append("              VeryLongOptionNameH,h\n");
+        sb.append(" -help    : Print detailed usage information\n");
+        sb.append(" -v level : Verbosity  (all,+5,5; finest,+4,4; finer,+3,3; fine,+2,2,debug; config,+1,1; info,0; warning,-1; severe,-2;\n");
+        sb.append("            off,-3)   Default = info\n");
+
+        assertEquals(sb.toString(), executeTool(new WithEnumField(), "-option foo", ""));
     }
 
     @Test
@@ -310,14 +345,16 @@ public class TestBaseCommandlineTool extends ToolTestCase
     public void testEnumOptionHandler() throws Exception
     {
         final WithEnumField tool = new WithEnumField();
-        executeTool(tool, "OptionB", "");
-        assertEquals(Enum.OptionB, tool.e);
-        executeTool(tool, "optiona", "");
-        assertEquals(Enum.OptionA, tool.e);
+        executeTool(tool, "", "");
+        assertEquals(Enum.VeryLongOptionNameB, tool.e);
+        executeTool(tool, "VeryLongOptionNameC", "");
+        assertEquals(Enum.VeryLongOptionNameC, tool.e);
+        executeTool(tool, "verylongoptionnamea", "");
+        assertEquals(Enum.VeryLongOptionNameA, tool.e);
         executeTool(tool, "b", "");
-        assertEquals(Enum.OptionB, tool.e);
+        assertEquals(Enum.VeryLongOptionNameB, tool.e);
 
-        // And test a parse failure
+        // Test a parse failure and usage info
         final String output = executeTool(tool, "2z", "");
         assertTrue("Wrong error output", output.startsWith("\"2z\" is not a valid value for <enum>"));
     }
@@ -328,6 +365,10 @@ public class TestBaseCommandlineTool extends ToolTestCase
 
         @Option(name = "-option", metaVar = "opt", usage = "Integer option")
         public int option = 2;
+
+        @SuppressWarnings("unused")
+        @Option(name = "-hidden", hidden = true, usage = "Hidden option")
+        public boolean hidden = false;
 
         @Override
         public void setup(final CmdLineParser parser) throws Exception
@@ -469,8 +510,8 @@ public class TestBaseCommandlineTool extends ToolTestCase
 
     private static class WithEnumField extends BaseCommandlineTool
     {
-        @Argument(index = 0, required = true, usage = "Enum value", metaVar = "enum")
-        protected Enum e;
+        @Argument(index = 0, usage = "Enum value", metaVar = "enum")
+        protected Enum e = Enum.VeryLongOptionNameB;
 
         @Override
         protected void run() throws Exception
@@ -479,20 +520,18 @@ public class TestBaseCommandlineTool extends ToolTestCase
 
     public static enum Enum
     {
-        OptionA, OptionB;
+        VeryLongOptionNameA("a"),
+        VeryLongOptionNameB("b"),
+        VeryLongOptionNameC("c"),
+        VeryLongOptionNameD("d"),
+        VeryLongOptionNameE("e"),
+        VeryLongOptionNameF("f"),
+        VeryLongOptionNameG("g"),
+        VeryLongOptionNameH("h");
 
-        public static Enum forString(final String s)
+        private Enum(final String... aliases)
         {
-            if (s.equalsIgnoreCase("a"))
-            {
-                return OptionA;
-            }
-            else if (s.equalsIgnoreCase("b"))
-            {
-                return OptionB;
-            }
-
-            return null;
+            EnumAliasMap.singleton().addAliases(this, aliases);
         }
     }
 }

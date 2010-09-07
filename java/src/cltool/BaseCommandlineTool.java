@@ -8,9 +8,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.jar.Manifest;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -47,25 +49,31 @@ import org.kohsuke.args4j.spi.Setter;
  */
 public abstract class BaseCommandlineTool {
 
+    @Option(name = "-help", usage = "Print detailed usage information")
+    protected boolean printHelp = false;
+
+    @Option(name = "-out", hidden = true, metaVar = "filename", usage = "Output file")
+    protected File outputFile = null;
+
+    @Option(name = "-time", hidden = true, usage = "Output execution times")
+    protected boolean time = false;
+
+    @Option(name = "-v", metaVar = "level", usage = "Verbosity")
+    protected LogLevel verbosityLevel = LogLevel.info;
+
+    @Option(name = "-version", hidden = true, usage = "Print version information")
+    protected boolean printVersion = false;
+
     /**
      * Non-threadable tools use a single thread; {@link Threadable} tools default to either the optional
      * 'defaultThreads' parameter or the number of CPUs
      */
     @Option(name = "-xt", metaVar = "threads", usage = "Maximum threads", requiredAnnotations = { Threadable.class })
     protected int maxThreads = getClass().getAnnotation(Threadable.class) != null ? (getClass()
-        .getAnnotation(Threadable.class).defaultThreads() != 0 ? getClass().getAnnotation(Threadable.class)
-        .defaultThreads() : Runtime.getRuntime().availableProcessors()) : 1;
-
-    @Option(name = "-out", metaVar = "filename", usage = "Output file")
-    protected File outputFile = null;
+            .getAnnotation(Threadable.class).defaultThreads() != 0 ? getClass().getAnnotation(
+            Threadable.class).defaultThreads() : Runtime.getRuntime().availableProcessors()) : 1;
 
     protected static Logger logger = Logger.getLogger("default");
-
-    @Option(name = "-v", metaVar = "level", usage = "Verbosity")
-    protected LogLevel verbosityLevel = LogLevel.info;
-
-    @Option(name = "-time", usage = "Output execution times")
-    protected boolean time = false;
 
     @Argument(multiValued = true, metaVar = "files")
     protected String[] inputFiles = new String[0];
@@ -126,9 +134,8 @@ public abstract class BaseCommandlineTool {
      * Perform any tool-specific setup. This method will only be called once, even if the tool is threadable
      * and {@link #run()} is called by multiple threads.
      *
-     * @param parser
-     *            The command-line parser which parsed the options. Use this parser instance if an overriding
-     *            implementation needs to throw a {@link CmdLineException}.
+     * @param parser The command-line parser which parsed the options. Use this parser instance if an
+     *            overriding implementation needs to throw a {@link CmdLineException}.
      */
     protected void setup(final CmdLineParser parser) throws Exception {
     }
@@ -139,7 +146,6 @@ public abstract class BaseCommandlineTool {
      */
     protected void cleanup() {
     }
-
 
     /**
      * Execute the tool's core functionality. If the tool is threadable, this method should be thread-safe and
@@ -158,17 +164,17 @@ public abstract class BaseCommandlineTool {
     @SuppressWarnings("unchecked")
     public final static void run(final String[] args) {
         try {
-            Class<? extends BaseCommandlineTool> c = (Class<? extends BaseCommandlineTool>) Class
-                .forName(Thread.currentThread().getStackTrace()[2].getClassName());
+            final Class<? extends BaseCommandlineTool> c = (Class<? extends BaseCommandlineTool>) Class
+                    .forName(Thread.currentThread().getStackTrace()[2].getClassName());
 
             // For Scala objects
             try {
-                BaseCommandlineTool tool = (BaseCommandlineTool) c.getField("MODULE$").get(null);
+                final BaseCommandlineTool tool = (BaseCommandlineTool) c.getField("MODULE$").get(null);
                 tool.runInternal(args);
             } catch (final Exception e) {
                 // For Java
                 final BaseCommandlineTool tool = c.getConstructor(new Class[] {})
-                    .newInstance(new Object[] {});
+                        .newInstance(new Object[] {});
                 tool.runInternal(args);
             }
         } catch (final Exception e) {
@@ -183,14 +189,47 @@ public abstract class BaseCommandlineTool {
         CmdLineParser.registerHandler(Calendar.class, CalendarOptionHandler.class);
 
         final CmdLineParser parser = new CmdLineParser(this);
+        parser.setUsageWidth(120);
 
         try {
             parser.parseArgument(args);
 
+            // If the user specified -help, print extended usage information and exit
+            if (printHelp) {
+                // Don't print out default value for help flag
+                printHelp = false;
+
+                printUsage(parser, true);
+                return;
+            } else if (printVersion) {
+                try {
+                    final Class<? extends BaseCommandlineTool> c = getClass();
+                    final String classFileName = c.getSimpleName() + ".class";
+                    final String pathToThisClass = c.getResource(classFileName).toString();
+
+                    final String pathToManifest = pathToThisClass.toString().substring(0,
+                            pathToThisClass.indexOf("!") + 1)
+                            + "/META-INF/MANIFEST.MF";
+
+                    final Manifest manifest = new Manifest(new URL(pathToManifest).openStream());
+
+                    if (manifest.getMainAttributes().getValue("Version") != null
+                            && manifest.getMainAttributes().getValue("Version").length() > 0) {
+                        System.out.println("Version: " + manifest.getMainAttributes().getValue("Version"));
+                    }
+                    System.out.println("Built at: " + manifest.getMainAttributes().getValue("Build-Time")
+                            + " from source revision "
+                            + manifest.getMainAttributes().getValue("Source-Revision"));
+                } catch (final Exception e) {
+                    System.out.println("Version information unavailable");
+                }
+                return;
+            }
+
             // Configure java.util.logging to log to the console, and only the message actually
             // logged, without any header or formatting.
             logger = Logger.getLogger("cltool");
-            for (Handler h : logger.getHandlers()) {
+            for (final Handler h : logger.getHandlers()) {
                 logger.removeHandler(h);
             }
             logger.setUseParentHandlers(false);
@@ -209,15 +248,8 @@ public abstract class BaseCommandlineTool {
 
             setup(null);
         } catch (final CmdLineException e) {
-            System.err.println(e.getMessage());
-            String classname = getClass().getName();
-            classname = classname.substring(classname.lastIndexOf('.') + 1);
-            if (classname.endsWith("$")) {
-                classname = classname.substring(0, classname.length() - 1);
-            }
-            System.err.print("\nUsage: " + classname);
-            parser.printOneLineUsage(System.err);
-            parser.printUsage(System.err);
+            System.err.println(e.getMessage() + '\n');
+            printUsage(parser, false);
             return;
         }
 
@@ -251,6 +283,17 @@ public abstract class BaseCommandlineTool {
         System.out.close();
     }
 
+    private void printUsage(final CmdLineParser parser, final boolean includeHiddenOptions) {
+        String classname = getClass().getName();
+        classname = classname.substring(classname.lastIndexOf('.') + 1);
+        if (classname.endsWith("$")) {
+            classname = classname.substring(0, classname.length() - 1);
+        }
+        System.err.print("Usage: " + classname);
+        parser.printOneLineUsage(System.err, includeHiddenOptions);
+        parser.printUsage(System.err, includeHiddenOptions);
+    }
+
     /**
      * Open the specified file, uncompressing GZIP'd files as appropriate
      *
@@ -262,6 +305,7 @@ public abstract class BaseCommandlineTool {
         final File f = new File(filename);
         if (!f.exists()) {
             System.err.println("Unable to find file: " + filename);
+            System.err.flush();
             System.exit(-1);
         }
 
@@ -433,33 +477,33 @@ public abstract class BaseCommandlineTool {
 
         public Level toLevel() {
             switch (this) {
-                case all:
-                    return Level.ALL;
-                case finest:
-                    return Level.FINEST;
-                case finer:
-                    return Level.FINER;
-                case fine:
-                    return Level.FINE;
-                case config:
-                    return Level.CONFIG;
-                case info:
-                    return Level.INFO;
-                case warning:
-                    return Level.WARNING;
-                case severe:
-                    return Level.SEVERE;
-                case off:
-                    return Level.OFF;
-                default:
-                    return null;
+            case all:
+                return Level.ALL;
+            case finest:
+                return Level.FINEST;
+            case finer:
+                return Level.FINER;
+            case fine:
+                return Level.FINE;
+            case config:
+                return Level.CONFIG;
+            case info:
+                return Level.INFO;
+            case warning:
+                return Level.WARNING;
+            case severe:
+                return Level.SEVERE;
+            case off:
+                return Level.OFF;
+            default:
+                return null;
             }
         }
     }
 
     private static class SystemOutHandler extends Handler {
 
-        public SystemOutHandler(Level level) {
+        public SystemOutHandler(final Level level) {
             setLevel(level);
         }
 
@@ -474,7 +518,7 @@ public abstract class BaseCommandlineTool {
         }
 
         @Override
-        public void publish(LogRecord record) {
+        public void publish(final LogRecord record) {
             System.out.println(record.getMessage());
         }
     }
