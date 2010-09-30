@@ -49,7 +49,7 @@ import org.kohsuke.args4j.spi.Setter;
  */
 public abstract class BaseCommandlineTool {
 
-    @Option(name = "-help", usage = "Print detailed usage information")
+    @Option(name = "-help", help = true, usage = "Print detailed usage information")
     protected boolean printHelp = false;
 
     @Option(name = "-out", hidden = true, metaVar = "filename", usage = "Output file")
@@ -61,7 +61,7 @@ public abstract class BaseCommandlineTool {
     @Option(name = "-v", metaVar = "level", usage = "Verbosity")
     protected LogLevel verbosityLevel = LogLevel.info;
 
-    @Option(name = "-version", hidden = true, usage = "Print version information")
+    @Option(name = "-version", hidden = true, help = true, usage = "Print version information")
     protected boolean printVersion = false;
 
     /**
