@@ -1,4 +1,4 @@
-package cltool;
+package cltool4j;
 
 import static junit.framework.Assert.assertEquals;
 

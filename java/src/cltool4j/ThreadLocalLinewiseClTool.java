@@ -1,4 +1,4 @@
-package cltool;
+package cltool4j;
 
 
 public abstract class ThreadLocalLinewiseClTool<T> extends LinewiseCommandlineTool

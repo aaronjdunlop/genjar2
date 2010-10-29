@@ -1,4 +1,4 @@
-package cltool;
+package cltool4j;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -63,6 +63,9 @@ public abstract class ToolTestCase
      */
     protected String executeTool(final BaseCommandlineTool tool, final String args, final InputStream input) throws Exception
     {
+        // Clear out any global properties left over from a previous run
+        GlobalConfigProperties.singleton().clear();
+        
         // Store STDIN, STDOUT, and STDERR so we can restore them after the test run
         final InputStream systemIn = System.in;
         final PrintStream systemOut = System.out;

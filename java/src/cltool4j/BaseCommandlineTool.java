@@ -1,17 +1,18 @@
-package cltool;
+package cltool4j;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Properties;
 import java.util.jar.Manifest;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -19,49 +20,51 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.EnumAliasMap;
-import org.kohsuke.args4j.Option;
-import org.kohsuke.args4j.OptionDef;
-import org.kohsuke.args4j.spi.OneArgumentOptionHandler;
-import org.kohsuke.args4j.spi.Setter;
+import cltool4j.args4j.Argument;
+import cltool4j.args4j.ArgumentParser;
+import cltool4j.args4j.CalendarParser;
+import cltool4j.args4j.CmdLineException;
+import cltool4j.args4j.CmdLineParser;
+import cltool4j.args4j.EnumAliasMap;
+import cltool4j.args4j.Option;
 
 /**
  * Base class for any tools which should be executable from the command-line. This class implements the
  * majority of the functionality needed to execute java code as a 'standard' command-line tool, including
  * parsing command-line options and reading input from either STDIN or from multiple files specified on the
  * command-line.
- *
+ * 
  * Unfortunately, it doesn't appear possible to determine the actual class being executed within
  * <code>main(String[])</code>, so each subclass must implement a <code>main(String[])</code> method and call
  * {@link BaseCommandlineTool#run(String[])} from within it.
- *
+ * 
  * In addition, subclasses should include a no-argument constructor and the abstract methods declared here in
  * the superclass.
- *
- *
+ * 
+ * 
  * @author Aaron Dunlop
  * @since Aug 14, 2008
- *
+ * 
  *        $Id$
  */
 public abstract class BaseCommandlineTool {
 
-    @Option(name = "-help", help = true, usage = "Print detailed usage information")
+    @Option(name = "-help", aliases = { "--help", "-?" }, ignoreRequired = true, usage = "Print detailed usage information")
     protected boolean printHelp = false;
 
-    @Option(name = "-out", hidden = true, metaVar = "filename", usage = "Output file")
-    protected File outputFile = null;
+    @Option(name = "-readme", aliases = { "--readme" }, hidden=true, ignoreRequired = true, usage = "Print full documentation", requiredResource="META-INF/README.txt")
+    protected boolean printReadme = false;
 
-    @Option(name = "-time", hidden = true, usage = "Output execution times")
-    protected boolean time = false;
+    @Option(name = "-license", aliases = { "--license" }, hidden=true, ignoreRequired = true, usage = "Print license", requiredResource="META-INF/LICENSE.txt")
+    protected boolean printLicense = false;
+
+    @Option(name = "-O", metaVar = "option / file", multiValued = true, usage = "Option or option file (file in Java properties format or option as key=value)")
+    protected String[] options = new String[0];
 
     @Option(name = "-v", metaVar = "level", usage = "Verbosity")
     protected LogLevel verbosityLevel = LogLevel.info;
 
-    @Option(name = "-version", hidden = true, help = true, usage = "Print version information")
+    @Option(name = "-version", aliases = { "--version" }, hidden = true, ignoreRequired = true, usage = "Print version information")
     protected boolean printVersion = false;
 
     /**
@@ -80,50 +83,6 @@ public abstract class BaseCommandlineTool {
 
     protected Exception exception;
 
-    protected final static SimpleDateFormat COMMANDLINE_DATE_FORMATS[] = new SimpleDateFormat[] {
-            // Dot-separated, with time
-            new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS.ZZZ"),
-            new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS"),
-            new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss"),
-            new SimpleDateFormat("yyyy.MM.dd.HH.mm"),
-            new SimpleDateFormat("yyyy.MM.dd.HH.mm"),
-
-            // Dot- and colon-separated, with time
-            new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS ZZZ"),
-            new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.SSS"),
-            new SimpleDateFormat("yyyy.MM.dd HH:mm:ss"),
-            new SimpleDateFormat("yyyy.MM.dd HH:mm"),
-
-            new SimpleDateFormat("MM.dd.yyyy HH:mm:ss"),
-            new SimpleDateFormat("MM.dd.yy HH:mm:ss"),
-            new SimpleDateFormat("MM.dd HH:mm:ss"),
-            new SimpleDateFormat("MM.dd.yyyy HH:mm"),
-            new SimpleDateFormat("MM.dd.yy HH:mm"),
-            new SimpleDateFormat("MM.dd HH:mm"),
-
-            // Dot-separated, without time
-            new SimpleDateFormat("yyyy.MM.dd"),
-            new SimpleDateFormat("MM.dd.yyyy"),
-            new SimpleDateFormat("MM.dd.yy"),
-            new SimpleDateFormat("MM.dd"),
-
-            // Slash-separated, with time
-            new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"), new SimpleDateFormat("MM/dd/yy HH:mm:ss"),
-            new SimpleDateFormat("MM/dd HH:mm:ss"),
-            new SimpleDateFormat("MM/dd/yyyy HH:mm"),
-            new SimpleDateFormat("MM/dd/yy HH:mm"),
-            new SimpleDateFormat("MM/dd HH:mm"),
-
-            // Slash-separated, without time
-            new SimpleDateFormat("yyyy/MM/dd"), new SimpleDateFormat("MM/dd/yyyy"),
-            new SimpleDateFormat("MM/dd/yy"), new SimpleDateFormat("MM/dd") };
-
-    static {
-        for (final SimpleDateFormat formatter : COMMANDLINE_DATE_FORMATS) {
-            formatter.setLenient(false);
-        }
-    }
-
     /**
      * Default constructor
      */
@@ -133,7 +92,7 @@ public abstract class BaseCommandlineTool {
     /**
      * Perform any tool-specific setup. This method will only be called once, even if the tool is threadable
      * and {@link #run()} is called by multiple threads.
-     *
+     * 
      * @param parser The command-line parser which parsed the options. Use this parser instance if an
      *            overriding implementation needs to throw a {@link CmdLineException}.
      */
@@ -150,7 +109,7 @@ public abstract class BaseCommandlineTool {
     /**
      * Execute the tool's core functionality. If the tool is threadable, this method should be thread-safe and
      * reentrant.
-     *
+     * 
      * @throws Exception
      */
     protected abstract void run() throws Exception;
@@ -158,7 +117,7 @@ public abstract class BaseCommandlineTool {
     /**
      * Parses command-line arguments and executes the tool. This method should be called from within the
      * main() methods of all subclasses.
-     *
+     * 
      * @param args
      */
     @SuppressWarnings("unchecked")
@@ -183,16 +142,11 @@ public abstract class BaseCommandlineTool {
     }
 
     protected final void runInternal(final String[] args) throws Exception {
-        final long startTime = System.currentTimeMillis();
-
-        CmdLineParser.registerHandler(Date.class, DateOptionHandler.class);
-        CmdLineParser.registerHandler(Calendar.class, CalendarOptionHandler.class);
-
         final CmdLineParser parser = new CmdLineParser(this);
         parser.setUsageWidth(120);
 
         try {
-            parser.parseArgument(args);
+            parser.parseArguments(args);
 
             // If the user specified -help, print extended usage information and exit
             if (printHelp) {
@@ -200,6 +154,12 @@ public abstract class BaseCommandlineTool {
                 printHelp = false;
 
                 printUsage(parser, true);
+                return;
+            } else if (printReadme) {
+                printToStdout(getClass().getClassLoader().getResourceAsStream("META-INF/README.txt"));
+                return;
+            } else if (printLicense) {
+                printToStdout(getClass().getClassLoader().getResourceAsStream("META-INF/LICENSE.txt"));
                 return;
             } else if (printVersion) {
                 try {
@@ -226,6 +186,29 @@ public abstract class BaseCommandlineTool {
                 return;
             }
 
+            // Configure GlobalProperties from property files or command-line options (-O)
+
+            // First, iterate through any property files specified, 'merging' the file contents together (in
+            // case of a duplicate key, the last one found wins)
+            for (final String o : options) {
+                String[] keyValue = o.split("=");
+                if (keyValue.length != 2) {
+                    // Treat it as a property file name
+                    Properties p = new Properties();
+                    p.load(new FileReader(o));
+                    GlobalConfigProperties.singleton().mergeOver(p);
+                }
+            }
+
+            // Now iterate though any key-value pairs specified directly on the command-line; those override
+            // properties loaded from files, and again, the last one found wins.
+            for (final String o : options) {
+                String[] keyValue = o.split("=");
+                if (keyValue.length == 2) {
+                    GlobalConfigProperties.singleton().setProperty(keyValue[0], keyValue[1]);
+                }
+            }
+
             // Configure java.util.logging to log to the console, and only the message actually
             // logged, without any header or formatting.
             logger = Logger.getLogger("cltool");
@@ -236,15 +219,6 @@ public abstract class BaseCommandlineTool {
             final Level l = verbosityLevel.toLevel();
             logger.addHandler(new SystemOutHandler(l));
             logger.setLevel(l);
-
-            if (outputFile != null) {
-                try {
-                    System.setOut(new PrintStream(outputFile));
-                } catch (final FileNotFoundException e) {
-                    System.err.println("Unable to open " + outputFile + " : " + e.getMessage());
-                    return;
-                }
-            }
 
             setup(null);
         } catch (final CmdLineException e) {
@@ -274,10 +248,6 @@ public abstract class BaseCommandlineTool {
             throw exception;
         }
 
-        if (time) {
-            System.out.format("Execution Time: %dms\n", System.currentTimeMillis() - startTime);
-        }
-
         cleanup();
         System.out.flush();
         System.out.close();
@@ -290,13 +260,13 @@ public abstract class BaseCommandlineTool {
             classname = classname.substring(0, classname.length() - 1);
         }
         System.err.print("Usage: " + classname);
-        parser.printOneLineUsage(System.err, includeHiddenOptions);
-        parser.printUsage(System.err, includeHiddenOptions);
+        parser.printOneLineUsage(new OutputStreamWriter(System.err), includeHiddenOptions);
+        parser.printUsage(new OutputStreamWriter(System.err), includeHiddenOptions);
     }
 
     /**
      * Open the specified file, uncompressing GZIP'd files as appropriate
-     *
+     * 
      * @param filename
      * @return InputStream
      * @throws IOException
@@ -318,7 +288,7 @@ public abstract class BaseCommandlineTool {
 
     /**
      * Read the specified file, uncompressing GZIP'd files as appropriate
-     *
+     * 
      * @param filename
      * @return InputStream
      * @throws IOException
@@ -340,6 +310,13 @@ public abstract class BaseCommandlineTool {
             sb.append((char) c);
         }
         return sb.toString();
+    }
+    
+    private void printToStdout(final InputStream input) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(input));
+        for (String line = br.readLine(); line != null; line = br.readLine()) {
+            System.out.println(line);
+        }
     }
 
     /**
@@ -377,26 +354,6 @@ public abstract class BaseCommandlineTool {
         return cal.getTime();
     }
 
-    protected static Calendar parseDate(final CmdLineParser parser, final String date)
-            throws CmdLineException {
-        final Calendar c = Calendar.getInstance();
-        final int year = c.get(Calendar.YEAR);
-
-        for (final SimpleDateFormat dateFormat : COMMANDLINE_DATE_FORMATS) {
-            try {
-                final Date d = dateFormat.parse(date);
-                c.setTime(d);
-                if (c.get(Calendar.YEAR) == 1970) {
-                    c.set(Calendar.YEAR, year);
-                }
-                return c;
-            } catch (final java.text.ParseException ignore) {
-            }
-        }
-
-        throw new CmdLineException(parser, "Error parsing date: " + date);
-    }
-
     /**
      * @return Logger instance
      */
@@ -405,64 +362,17 @@ public abstract class BaseCommandlineTool {
     }
 
     /**
-     * Parses a date into a {@link java.util.Calendar}
-     */
-    public static class CalendarOptionHandler extends OneArgumentOptionHandler<Calendar> {
-
-        public CalendarOptionHandler(final CmdLineParser parser, final OptionDef option,
-                final Setter<? super Calendar> setter) {
-            super(parser, option, setter);
-        }
-
-        @Override
-        public Calendar parse(final String s) throws CmdLineException {
-            return BaseCommandlineTool.parseDate(owner, s.toLowerCase());
-        }
-
-        @Override
-        public String getDefaultMetaVariable() {
-            return "date";
-        }
-    }
-
-    /**
-     * Parses a date into a {@link java.util.Date}
-     */
-    public static class DateOptionHandler extends OneArgumentOptionHandler<Date> {
-
-        public DateOptionHandler(final CmdLineParser parser, final OptionDef option,
-                final Setter<? super Date> setter) {
-            super(parser, option, setter);
-        }
-
-        @Override
-        public Date parse(final String s) throws CmdLineException {
-            return BaseCommandlineTool.parseDate(owner, s.toLowerCase()).getTime();
-        }
-
-        @Override
-        public String getDefaultMetaVariable() {
-            return "date";
-        }
-    }
-
-    /**
      * Parses a date into a long (seconds since the epoch)
      */
-    public static class TimestampOptionHandler extends OneArgumentOptionHandler<Long> {
+    public static class TimestampParser extends ArgumentParser<Long> {
 
-        public TimestampOptionHandler(final CmdLineParser parser, final OptionDef option,
-                final Setter<? super Long> setter) {
-            super(parser, option, setter);
+        @Override
+        public Long parse(final String s) {
+            return CalendarParser.parseDate(s.toLowerCase()).getTime().getTime();
         }
 
         @Override
-        public Long parse(final String s) throws CmdLineException {
-            return BaseCommandlineTool.parseDate(owner, s.toLowerCase()).getTime().getTime();
-        }
-
-        @Override
-        public String getDefaultMetaVariable() {
+        public String defaultMetaVar() {
             return "date";
         }
     }
