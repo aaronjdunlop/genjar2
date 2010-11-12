@@ -22,61 +22,49 @@ import java.io.InputStream;
 import java.util.zip.ZipException;
 
 /**
- * Extends {@link org.apache.tools.zip.ZipEntry}, adding a flag for entries which are already
- * compressed (generally in another ZIP file).
- *
+ * Extends {@link org.apache.tools.zip.ZipEntry}, adding a flag for entries which are already compressed (generally in
+ * another ZIP file).
+ * 
  */
-public class ZipEntry extends org.apache.tools.zip.ZipEntry
-{
+public class ZipEntry extends org.apache.tools.zip.ZipEntry {
     private boolean alreadyCompressed = false;
     private java.util.zip.ZipEntry createdFrom;
     private InputStream inputStream;
 
-    public ZipEntry(String name, InputStream is, boolean alreadyCompressed)
-    {
+    public ZipEntry(final String name, final InputStream is, final boolean alreadyCompressed) {
         super(name);
         this.inputStream = is;
         this.alreadyCompressed = alreadyCompressed;
     }
 
-    public ZipEntry(java.util.zip.ZipEntry entry, boolean alreadyCompressed) throws ZipException
-    {
+    public ZipEntry(final java.util.zip.ZipEntry entry, final boolean alreadyCompressed) throws ZipException {
         super(entry);
         this.createdFrom = entry;
         this.alreadyCompressed = alreadyCompressed;
-//
-//        setSize(entry.getSize());
-//        setCrc(entry.getCrc());
     }
 
-    public boolean isAlreadyCompressed()
-    {
+    public boolean isAlreadyCompressed() {
         return alreadyCompressed;
     }
 
-    public void setAlreadyCompressed(boolean alreadyCompressed)
-    {
+    public void setAlreadyCompressed(final boolean alreadyCompressed) {
         this.alreadyCompressed = alreadyCompressed;
     }
 
-    public java.util.zip.ZipEntry getCreatedFrom()
-    {
+    public java.util.zip.ZipEntry getCreatedFrom() {
         return createdFrom;
     }
 
-    public InputStream getInputStream()
-    {
+    public InputStream getInputStream() {
         return inputStream;
     }
 
-    public void setInputStream(InputStream is)
-    {
+    public void setInputStream(final InputStream is) {
         this.inputStream = is;
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(final Object o) {
         return (o == this || o == createdFrom);
     }
 }

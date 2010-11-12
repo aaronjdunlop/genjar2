@@ -68,7 +68,6 @@ import net.sf.genjar.zip.ZipOutputStream;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.FileScanner;
 import org.apache.tools.ant.Project;
-import org.apache.tools.ant.taskdefs.Jar;
 import org.apache.tools.ant.types.FileSet;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.types.Reference;
@@ -80,16 +79,17 @@ import org.apache.tools.ant.util.FileUtils;
 /**
  * Driver class for the GenJar task.
  * <p>
- *
+ * 
  * This class is instantiated when Ant encounters the &lt;genjar&gt; element.
- *
- * @author Original Code: <a href="mailto:jake@riggshill.com">John W. Kohler </a>
+ * 
+ * @author John W. Kohler
  * @author Jesse Stockall
+ * @author Aaron Dunlop
  * @created February 23, 2003
  * @version $Revision: 1.4 $ $Date: 2003/02/23 18:25:23 $
  */
-public class GenJar extends Jar
-{
+public class GenJar extends BaseGenJarTask {
+
     private final List<RootClass> rootClasses = new ArrayList<RootClass>(32);
     private final List<RootClassList> rootClassLists = new ArrayList<RootClassList>(32);
 
@@ -99,95 +99,85 @@ public class GenJar extends Jar
     private Path classpath = null;
     private Path runtimeClasspath = null;
     private ClassFilter classFilter = null;
-    private final List<BaseResolver> resolvers = new LinkedList<BaseResolver>();
     private final List<BaseResolver> runtimeClasspathResolvers = new LinkedList<BaseResolver>();
 
     /** jar index is JDK 1.3+ only */
     private boolean index = true;
 
     /** Constructor for the GenJar object */
-    public GenJar()
-    {
+    public GenJar() {
         setTaskName("GenJar");
         setUpdate(false);
     }
 
     /**
-     * Set whether or not to create an index list for classes. This may speed up classloading in
-     * some cases.
-     *
+     * Set whether or not to create an index list for classes. This may speed up classloading in some cases.
+     * 
      * @param flag The new index value
      */
     @Override
-    public void setIndex(boolean flag)
-    {
+    public void setIndex(final boolean flag) {
         index = flag;
     }
 
     /**
      * Adds a classpath
-     *
+     * 
      * @param path
      */
-    public void addClasspath(Path path)
-    {
+    public void addClasspath(final Path path) {
         this.classpath = path;
     }
 
     /**
      * Sets the <classpathref> attribute.
-     *
+     * 
      * @param r The new classpath ref.
      */
-    public void setClasspathRef(Reference r)
-    {
-        Path cp = new Path(getProject());
+    public void setClasspathRef(final Reference r) {
+        final Path cp = new Path(getProject());
         cp.setRefid(r);
         addClasspath(cp);
     }
 
     /**
      * Adds a runtime classpath (<runtimeclasspath>)
-     *
+     * 
      * @param path
      */
-    public void addRuntimeClasspath(Path path)
-    {
+    public void addRuntimeClasspath(final Path path) {
         this.runtimeClasspath = path;
     }
 
     /**
      * Sets the <untimeclasspathref> attribute.
-     *
+     * 
      * @param r The new classpath ref.
      */
-    public void setRuntimeClasspathRef(Reference r)
-    {
-        Path cp = new Path(getProject());
+    public void setRuntimeClasspathRef(final Reference r) {
+        final Path cp = new Path(getProject());
         cp.setRefid(r);
         addRuntimeClasspath(cp);
     }
 
     /**
      * Builds a <class> element.
-     *
+     * 
      * @return A <class> element.
      */
-    public RootClass createClass()
-    {
-        RootClass rc = new RootClass(getProject());
+    public RootClass createClass() {
+        final RootClass rc = new RootClass(getProject());
         rootClasses.add(rc);
         return rc;
     }
 
     /**
      * Builds a <classes> element.
-     *
+     * 
      * @return A <classes> element.
      */
-    public RootClassList createClasses()
-    {
-        RootClassList rc = new RootClassList();
+    public RootClassList createClasses() {
+        final RootClassList rc = new RootClassList();
         rootClassLists.add(rc);
         return rc;
     }
@@ -195,8 +185,7 @@ public class GenJar extends Jar
     /**
      * Adds a root class (<class>).
      */
-    public void addClass(RootClass rootClass)
-    {
+    public void addClass(final RootClass rootClass) {
         rootClasses.add(rootClass);
     }
 
@@ -204,8 +193,7 @@ public class GenJar extends Jar
      * Adds a contained FileSet (<fileset>)
      */
     @Override
-    public void addFileset(FileSet fs)
-    {
+    public void addFileset(final FileSet fs) {
         filesets.add(fs);
     }
 
@@ -213,28 +201,24 @@ public class GenJar extends Jar
      * Adds a contained ZipFileSet (<zipfileset>)
      */
     @Override
-    public void addZipfileset(ZipFileSet fs)
-    {
+    public void addZipfileset(final ZipFileSet fs) {
         filesets.add(fs);
     }
 
     /**
      * Adds a contained ZipGroupFileSet (<zipgroupfileset>)
      */
-    public void addZipgroupfileset(FileSet fs)
-    {
+    public void addZipgroupfileset(final FileSet fs) {
         groupfilesets.add(fs);
     }
 
     /**
      * Builds a classfilter element.
-     *
+     * 
      * @return A <classfilter> element.
      */
-    public ClassFilter createClassfilter()
-    {
-        if (classFilter == null)
-        {
+    public ClassFilter createClassfilter() {
+        if (classFilter == null) {
             classFilter = new ClassFilter(getProject());
         }
         return classFilter;
@@ -247,44 +231,38 @@ public class GenJar extends Jar
      * <li>ensure classpath is setup (with any additions from sub-elements
      * <li>initialize file resolvers
      * <li>initialize the manifest
-     * <li>resolve resource file paths resolve class file paths generate dependancy graphs for class
-     * files and resolve those paths check for duplicates
+     * <li>resolve resource file paths resolve class file paths generate dependancy graphs for class files and resolve
+     * those paths check for duplicates
      * <li>generate manifest entries for all candidate files
      * <li>build jar
      * </ol>
-     *
-     *
+     * 
+     * 
      * @throws BuildException Description of the Exception
      */
     @Override
-    public void execute() throws BuildException
-    {
-        long start = System.currentTimeMillis();
+    public void execute() throws BuildException {
+        final long start = System.currentTimeMillis();
 
-        if (classFilter == null)
-        {
+        if (classFilter == null) {
             classFilter = new ClassFilter(getProject());
         }
 
         processGroupFilesets();
 
         getProject().log("GenJar Ver: 2.0.0", Project.MSG_VERBOSE);
-        if (getDestFile() == null)
-        {
+        if (getDestFile() == null) {
             throw new BuildException("GenJar: destfile attribute is required", getLocation());
         }
 
         //
         // Set up the classpath & resolvers - file/zip
         //
-        try
-        {
-            if (classpath == null)
-            {
+        try {
+            if (classpath == null) {
                 classpath = new Path(getProject());
             }
-            if (!classpath.isReference())
-            {
+            if (!classpath.isReference()) {
                 // Add the system path now - AFTER all other paths are specified
                 classpath.addExisting(Path.systemClasspath);
             }
@@ -292,9 +270,7 @@ public class GenJar extends Jar
             getProject().log("Initializing Path Resolvers", Project.MSG_VERBOSE);
             getProject().log("Classpath:" + classpath, Project.MSG_VERBOSE);
             initResolvers();
-        }
-        catch (IOException ioe)
-        {
+        } catch (final IOException ioe) {
             throw new BuildException("Unable to process classpath: " + ioe, getLocation());
         }
 
@@ -308,38 +284,30 @@ public class GenJar extends Jar
         //
         final Set<String> archiveEntries = new HashSet<String>();
 
-        for (final RootClassList rc : rootClassLists)
-        {
-            for (String classname : rc.getClassNames())
-            {
+        for (final RootClassList rc : rootClassLists) {
+            for (final String classname : rc.getClassNames()) {
                 rootClasses.add(new RootClass(getProject(), classname));
             }
         }
 
-        for (final RootClass rc : rootClasses)
-        {
+        for (final RootClass rc : rootClasses) {
             rc.resolve(this);
 
             //
             // before adding a new jarspec - see if it already exists
             // first entry added to jar always wins
             //
-            for (final String entry : rc.getJarEntries())
-            {
-                if (!archiveEntries.contains(entry))
-                {
+            for (final String entry : rc.getJarEntries()) {
+                if (!archiveEntries.contains(entry)) {
                     archiveEntries.add(entry);
                     getProject().log("Adding " + entry, Project.MSG_VERBOSE);
-                }
-                else
-                {
+                } else {
                     getProject().log("Duplicate (ignored): " + entry, Project.MSG_VERBOSE);
                 }
             }
         }
 
-        if (zipFile.exists())
-        {
+        if (zipFile.exists()) {
             zipFile.delete();
         }
 
@@ -347,8 +315,7 @@ public class GenJar extends Jar
 
         ZipEntry ze = null;
         ZipOutputStream zOut = null;
-        try
-        {
+        try {
             // Find the resources (fileset, zipfileset, zipgroupfileset, etc) that we're going to
             // add. Code stolen from Ant's Zip task
             final ResourceCollection[] fss = filesets.toArray(new ResourceCollection[filesets.size()]);
@@ -363,27 +330,22 @@ public class GenJar extends Jar
             initZipOutputStream(zOut);
 
             final byte[] buf = new byte[16384];
-            for (final String jarEntry : archiveEntries)
-            {
+            for (final String jarEntry : archiveEntries) {
                 ze = resolveEntry(jarEntry);
-                if (ze == null)
-                {
-                    // Try to resolve in runtime-classpath
-                    if (inRuntimeClasspath(jarEntry))
-                    {
+                if (ze == null) {
+                    // Ignore classes in the runtime classpath (they don't need to be included in the jar)
+                    if (inRuntimeClasspath(jarEntry)) {
                         continue;
                     }
 
-                    getProject().log("Unable to locate previously resolved resource", Project.MSG_ERR);
-                    getProject().log("       Jar Name:" + jarEntry, Project.MSG_ERR);
-                    throw new BuildException("Jar component not found (" + jarEntry + ')', getLocation());
+                    getProject().log("Unable to locate required resource: " + jarEntry, Project.MSG_ERR);
+                    throw new BuildException("Unable to locate required resource [" + jarEntry + ']', getLocation());
                 }
                 final InputStream is = ze.getInputStream();
                 getProject().log("Archiving: " + ze.getName(), Project.MSG_VERBOSE);
 
                 zOut.putNextEntry(ze);
-                for (int read = is.read(buf); read != -1; read = is.read(buf))
-                {
+                for (int read = is.read(buf); read != -1; read = is.read(buf)) {
                     zOut.write(buf, 0, read);
                 }
                 zOut.closeEntry();
@@ -391,77 +353,57 @@ public class GenJar extends Jar
             }
 
             // Add the explicit resource collections to the archive.
-            for (int i = 0; i < fss.length; i++)
-            {
-                if (addThem[i].length != 0)
-                {
+            for (int i = 0; i < fss.length; i++) {
+                if (addThem[i].length != 0) {
                     addResourcesToArchive(fss[i], addThem[i], zOut, archiveEntries);
                 }
             }
 
             // Add an index list to the jar if it was requested
-            if (index)
-            {
+            if (index) {
                 addIndexList(zOut, archiveEntries);
             }
-        }
-        catch (FileNotFoundException fnfe)
-        {
+        } catch (final FileNotFoundException fnfe) {
             throw new BuildException("Unable to access jar file (" + getDestFile() + ") msg:", fnfe, getLocation());
-        }
-        catch (IOException ioe)
-        {
+        } catch (final IOException ioe) {
             throw new BuildException("Unable to create jar: " + ioe.getMessage(), ioe, getLocation());
-        }
-        finally
-        {
-            try
-            {
-                if (ze != null)
-                {
+        } finally {
+            try {
+                if (ze != null) {
                     ze.getInputStream().close();
                 }
+            } catch (final IOException ioe) {
             }
-            catch (IOException ioe)
-            {}
-            try
-            {
-                if (zOut != null)
-                {
+            try {
+                if (zOut != null) {
                     zOut.close();
                 }
+            } catch (final IOException ioe) {
             }
-            catch (IOException ioe)
-            {}
         }
         log("Jar Generated (" + (System.currentTimeMillis() - start) + " ms)");
 
         // Close all the resolvers
-        for (BaseResolver resolver : resolvers)
-        {
+        for (final BaseResolver resolver : resolvers) {
             resolver.close();
         }
     }
 
     /**
      * Add the given resources to the archive.
-     *
+     * 
      * @param rc may give additional information like fullpath or permissions.
      * @param resources the resources to add
      * @param zOut the stream to write to
      * @throws IOException on error
-     *
+     * 
      * @since Ant 1.7
      */
-    private void addResourcesToArchive(ResourceCollection rc, Resource[] resources, ZipOutputStream zOut,
-        Set<String> archiveEntries) throws IOException
-    {
-        if (rc instanceof ZipFileSet)
-        {
+    private void addResourcesToArchive(final ResourceCollection rc, final Resource[] resources,
+            final ZipOutputStream zOut, final Set<String> archiveEntries) throws IOException {
+        if (rc instanceof ZipFileSet) {
             addZipfilesetToArchive((ZipFileSet) rc, resources, zOut, archiveEntries);
-        }
-        else
-        {
+        } else {
             // TODO Add entries from this ResourceCollection to archiveEntries so we won't re-add
             // them later.
             super.addResources(rc, resources, zOut);
@@ -470,113 +412,76 @@ public class GenJar extends Jar
 
     /**
      * Add zipfileset to the archive.
-     *
+     * 
      * @param fileset may give additional information like fullpath or permissions.
      * @param resources the resources to add
      * @param zOut the stream to write to
      * @throws IOException on error
-     *
+     * 
      * @since Ant 1.5.2
      */
-    protected final void addZipfilesetToArchive(ZipFileSet zfs, Resource[] resources, ZipOutputStream zOut,
-        Set<String> archiveEntries) throws IOException
-    {
+    protected final void addZipfilesetToArchive(final ZipFileSet zfs, final Resource[] resources,
+            final ZipOutputStream zOut, final Set<String> archiveEntries) throws IOException {
         final String prefix = zfs.getPrefix(getProject());
         final String fullpath = zfs.getFullpath(getProject());
         final int dirMode = zfs.getDirMode(getProject());
 
-        if (prefix.length() > 0 && fullpath.length() > 0)
-        {
+        if (prefix.length() > 0 && fullpath.length() > 0) {
             throw new BuildException("Both prefix and fullpath attributes must" + " not be set on the same fileset.");
         }
 
-        if (resources.length != 1 && fullpath.length() > 0)
-        {
+        if (resources.length != 1 && fullpath.length() > 0) {
             throw new BuildException("fullpath attribute may only be specified" + " for filesets that specify a single"
-                + " file.");
+                    + " file.");
         }
 
         final net.sf.genjar.zip.ZipFile zf = new net.sf.genjar.zip.ZipFile(zfs.getSrc(getProject()));
-        try
-        {
+        try {
             final byte[] buf = new byte[8192];
-            for (int i = 0; i < resources.length; i++)
-            {
-                String name = resources[i].getName().replace(File.separatorChar, '/');
+            for (int i = 0; i < resources.length; i++) {
+                final String name = resources[i].getName().replace(File.separatorChar, '/');
                 // Don't re-add entries already in the archive or manifests from an included jar
-                if (archiveEntries.contains(name) || name.equals("META-INF/MANIFEST.MF"))
-                {
+                if (archiveEntries.contains(name) || name.equals("META-INF/MANIFEST.MF")) {
                     continue;
                 }
 
                 archiveEntries.add(name);
 
-                int nextToLastSlash = name.lastIndexOf("/", name.length() - 2);
-                if (nextToLastSlash != -1)
-                {
+                final int nextToLastSlash = name.lastIndexOf("/", name.length() - 2);
+                if (nextToLastSlash != -1) {
                     addParentDirs(null, name.substring(0, nextToLastSlash + 1), zOut, prefix, dirMode);
                 }
 
-                ZipEntry ze = new ZipEntry(zf.getEntry(resources[i].getName()), true);
+                final ZipEntry ze = new ZipEntry(zf.getEntry(resources[i].getName()), true);
                 addParentDirs(null, name, zOut, prefix, dirMode);
 
                 final InputStream is = zf.getInputStream(ze);
-                try
-                {
+                try {
                     zOut.putNextEntry(ze);
-                    for (int read = is.read(buf); read != -1; read = is.read(buf))
-                    {
+                    for (int read = is.read(buf); read != -1; read = is.read(buf)) {
                         zOut.write(buf, 0, read);
                     }
                     zOut.closeEntry();
-                }
-                finally
-                {
+                } finally {
                     FileUtils.close(is);
                 }
             }
-        }
-        finally
-        {
+        } finally {
             zf.close();
         }
     }
 
     /**
-     * Finds a class file in genjar's classpath, searching jars and filesystem directories.
-     *
-     *
-     * @param classfileName Class name to resolve
-     * @return ZipEntry of resolved class location, or null if not found
-     * @throws IOException if an I/O error occurs
-     */
-    private ZipEntry resolveEntry(String classfileName) throws IOException
-    {
-        for (BaseResolver resolver : resolvers)
-        {
-            final ZipEntry ze = resolver.resolve(classfileName);
-            if (ze != null)
-            {
-                return ze;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Returns true if the specified class file is found in a library specified as runtime
-     * classpath. Jars in the runtime classpath are included in the generated META-INF/MANIFEST.MF.
-     *
+     * Returns true if the specified class file is found in a library specified as runtime classpath. Jars in the
+     * runtime classpath are included in the generated META-INF/MANIFEST.MF.
+     * 
      * @param classfileName
      * @return true if the specified class file is found in a runtime library
      * @throws IOException
      */
-    private boolean inRuntimeClasspath(String classfileName) throws IOException
-    {
-        for (BaseResolver resolver : runtimeClasspathResolvers)
-        {
-            if (resolver.resolve(classfileName) != null)
-            {
+    private boolean inRuntimeClasspath(final String classfileName) throws IOException {
+        for (final BaseResolver resolver : runtimeClasspathResolvers) {
+            if (resolver.resolve(classfileName) != null) {
                 return true;
             }
         }
@@ -585,32 +490,25 @@ public class GenJar extends Jar
 
     /**
      * Generates a list of all classes upon which the list of classes depend.
-     *
-     * @param jarEntrySpecs List of <code>JarEntrySpec</code>s used as a list of class names from
-     *            which to start.
+     * 
+     * @param jarEntrySpecs List of <code>JarEntrySpec</code>s used as a list of class names from which to start.
      */
-    void generateDependancies(Collection<String> jarEntries)
-    {
+    void generateDependancies(final Collection<String> jarEntries) {
         jarEntries.addAll(generateClassDependencies(jarEntries));
     }
 
     /**
      * Iterate through the classpath and create an array of all the {@link BaseResolver}s
-     *
+     * 
      * @throws IOException Description of the Exception
      */
-    private void initResolvers() throws IOException
-    {
+    private void initResolvers() throws IOException {
         resolvers.addAll(initResolvers(classpath));
 
-        for (final FileSet fs : filesets)
-        {
-            if (fs instanceof ZipFileSet)
-            {
+        for (final FileSet fs : filesets) {
+            if (fs instanceof ZipFileSet) {
                 resolvers.add(new ArchiveResolver((ZipFileSet) fs));
-            }
-            else
-            {
+            } else {
                 resolvers.add(new FileResolver(fs));
             }
         }
@@ -618,70 +516,25 @@ public class GenJar extends Jar
         runtimeClasspathResolvers.addAll(initResolvers(runtimeClasspath));
     }
 
-    private List<BaseResolver> initResolvers(Path path) throws IOException
-    {
-        final List<BaseResolver> tempResolvers = new ArrayList<BaseResolver>();
-
-        if (path == null)
-        {
-            return tempResolvers;
-        }
-
-        for (final String classpathEntry : path.list())
-        {
-            final File f = new File(classpathEntry);
-
-            if (!f.exists())
-            {
-                continue;
-            }
-
-            final String suffix = classpathEntry.substring(classpathEntry.length() - 4);
-            if (suffix.equalsIgnoreCase(".jar") || suffix.equalsIgnoreCase(".zip"))
-            {
-                ZipFileSet zfs = new ZipFileSet();
-                zfs.setSrc(f);
-                zfs.setProject(getProject());
-                tempResolvers.add(new ArchiveResolver(zfs));
-            }
-            else if (f.isDirectory())
-            {
-                FileSet fs = new FileSet();
-                fs.setDir(f);
-                fs.setProject(getProject());
-                tempResolvers.add(new FileResolver(fs));
-            }
-            else
-            {
-                throw new BuildException(f.getName() + " is not a valid classpath component", getLocation());
-            }
-        }
-        return tempResolvers;
-    }
-
     /**
-     * Generates a list of classes upon which the named class is dependent.
-     *
+     * Generates a list of classes upon which the named class depends.
+     * 
      * @param it Iterator of all the classes to use when building the dependencies.
      * @return A List of all the class dependencies.
      */
     @SuppressWarnings("unchecked")
-    private Set<String> generateClassDependencies(Collection<String> jarEntries)
-    {
+    private Set<String> generateClassDependencies(final Collection<String> jarEntries) {
         final Analyzer ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList());
         ga.addClassPath(classpath);
 
         final Set<String> resolvedClasses = new HashSet<String>();
 
-        for (String classname : jarEntries)
-        {
-            if (!resolvedClasses.contains(classname))
-            {
+        for (String classname : jarEntries) {
+            if (!resolvedClasses.contains(classname)) {
                 resolvedClasses.add(classname);
 
                 // Ant's analyzer framework adds the .class, so strip it here
-                if (classname.endsWith(".class"))
-                {
+                if (classname.endsWith(".class")) {
                     classname = classname.substring(0, classname.length() - 6);
                 }
                 ga.addRootClass(classname);
@@ -691,8 +544,7 @@ public class GenJar extends Jar
         final Set<String> deps = new HashSet<String>();
         final Enumeration<String> e = ga.getClassDependencies();
 
-        while (e.hasMoreElements())
-        {
+        while (e.hasMoreElements()) {
             // Now convert back to / and add .class
             deps.add(e.nextElement().replace('.', '/') + ".class");
         }
@@ -700,21 +552,18 @@ public class GenJar extends Jar
     }
 
     /**
-     * Create the index list to speed up classloading. This is a JDK 1.3+ specific feature and is
-     * enabled by default. See <a
-     * href="http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#JAR+Index"> the JAR index
-     * specification</a> for more details.
+     * Create the index list to speed up classloading. This is a JDK 1.3+ specific feature and is enabled by default.
+     * See <a href="http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#JAR+Index"> the JAR index specification</a> for
+     * more details.
      * <p>
-     *
+     * 
      * Based on code from ant's Jar task.
-     *
+     * 
      * @param zOut An opened JarOutPutStream to write to index file to.
      * @param jarEntries A list of all the entried in the jar.
-     * @throws IOException thrown if there is an error while creating the index and adding it to the
-     *             zip stream.
+     * @throws IOException thrown if there is an error while creating the index and adding it to the zip stream.
      */
-    private void addIndexList(final ZipOutputStream zOut, final Set<String> jarEntries) throws IOException
-    {
+    private void addIndexList(final ZipOutputStream zOut, final Set<String> jarEntries) throws IOException {
         zOut.putNextEntry(new org.apache.tools.zip.ZipEntry("META-INF/INDEX.LIST"));
 
         // encoding must be UTF8 as specified in the specs.
@@ -729,13 +578,11 @@ public class GenJar extends Jar
 
         final Set<String> directoriesAlreadyAdded = new HashSet<String>();
 
-        for (final String jarEntry : jarEntries)
-        {
+        for (final String jarEntry : jarEntries) {
             String path = jarEntry.replace('\\', '/');
 
             final int pos = path.lastIndexOf('/');
-            if (pos == -1)
-            {
+            if (pos == -1) {
                 // Class is in root and can be ignored? maybe?
                 continue;
             }
@@ -743,16 +590,14 @@ public class GenJar extends Jar
             // looks like nothing from META-INF should be added
             // and the check is not case insensitive.
             // see sun.misc.JarIndex
-            if (path.startsWith("META-INF"))
-            {
+            if (path.startsWith("META-INF")) {
                 continue;
             }
 
             path = path.substring(0, pos);
 
             // Only add the path once
-            if (!directoriesAlreadyAdded.contains(path))
-            {
+            if (!directoriesAlreadyAdded.contains(path)) {
                 writer.println(path);
                 directoriesAlreadyAdded.add(path);
             }
@@ -763,20 +608,16 @@ public class GenJar extends Jar
     }
 
     /**
-     * Stolen verbatim from Ant's Jar task, since this method is private and can't be called from
-     * genjar
+     * Stolen verbatim from Ant's Jar task, since this method is private and can't be called from genjar
      */
-    private void processGroupFilesets()
-    {
+    private void processGroupFilesets() {
         // Add the files found in the groupfileset to filesets
-        for (final FileSet fs : groupfilesets)
-        {
+        for (final FileSet fs : groupfilesets) {
             log("Processing groupfileset ", Project.MSG_VERBOSE);
             final FileScanner scanner = fs.getDirectoryScanner(getProject());
             final File basedir = scanner.getBasedir();
 
-            for (final String filename : scanner.getIncludedFiles())
-            {
+            for (final String filename : scanner.getIncludedFiles()) {
                 log("Adding file " + filename + " to fileset", Project.MSG_VERBOSE);
                 final ZipFileSet zf = new ZipFileSet();
                 zf.setProject(getProject());

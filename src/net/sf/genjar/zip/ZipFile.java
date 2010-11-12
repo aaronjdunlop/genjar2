@@ -27,15 +27,13 @@ import java.lang.reflect.Method;
 import java.util.zip.ZipException;
 
 /**
- * Extends {@link java.util.zip.ZipFile}, making use of {@link ZipEntry} flag for already-compressed
- * entries. Intended to avoid the expense of decompression and recompression when copying a file
- * from one archive to another.
- *
- * Warning, this involves accessing private fiels from {@link org.apache.tools.zip.ZipOutputStream},
- * so it's somewhat fragile. But it does improve build performance considerably.
+ * Extends {@link java.util.zip.ZipFile}, making use of {@link ZipEntry} flag for already-compressed entries. Intended
+ * to avoid the expense of decompression and recompression when copying a file from one archive to another.
+ * 
+ * Warning, this involves accessing private fields from {@link org.apache.tools.zip.ZipOutputStream}, so it's somewhat
+ * fragile. But it does improve build performance considerably.
  */
-public class ZipFile extends java.util.zip.ZipFile
-{
+public class ZipFile extends java.util.zip.ZipFile {
     private final static Object[] EMPTY_ARGS = new Object[0];
 
     private Constructor<?> zipFileInputStreamConstructor;
@@ -43,21 +41,17 @@ public class ZipFile extends java.util.zip.ZipFile
     private Method ensureOpenMethod;
     private Method getEntryMethod;
 
-    public ZipFile(File file) throws ZipException, IOException
-    {
+    public ZipFile(final File file) throws ZipException, IOException {
         super(file);
         init();
     }
 
-    private void init()
-    {
-        if (zipFileInputStreamConstructor != null)
-        {
+    private void init() {
+        if (zipFileInputStreamConstructor != null) {
             return;
         }
 
-        try
-        {
+        try {
             final Class<?> cl = Class.forName("java.util.zip.ZipFile$ZipFileInputStream");
             zipFileInputStreamConstructor = cl.getDeclaredConstructor(java.util.zip.ZipFile.class, long.class);
             zipFileInputStreamConstructor.setAccessible(true);
@@ -68,13 +62,10 @@ public class ZipFile extends java.util.zip.ZipFile
             ensureOpenMethod = java.util.zip.ZipFile.class.getDeclaredMethod("ensureOpen", new Class<?>[0]);
             ensureOpenMethod.setAccessible(true);
 
-            getEntryMethod = java.util.zip.ZipFile.class.getDeclaredMethod("getEntry", new Class<?>[] {long.class,
-                                                                                                       String.class,
-                                                                                                       boolean.class});
+            getEntryMethod = java.util.zip.ZipFile.class.getDeclaredMethod("getEntry", new Class<?>[] { long.class,
+                    String.class, boolean.class });
             getEntryMethod.setAccessible(true);
-        }
-        catch (Exception e)
-        {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -82,21 +73,18 @@ public class ZipFile extends java.util.zip.ZipFile
 
     /**
      * Returns an InputStream for reading the contents of the given entry.
-     *
+     * 
      * @param ze the entry to get the stream for.
      * @return a stream to read the entry from.
      * @throws IOException if unable to create an input stream from the zipentry
      * @throws ZipException if the zipentry has an unsupported compression method
      */
     @Override
-    public InputStream getInputStream(java.util.zip.ZipEntry ze) throws IOException, ZipException
-    {
-        if (ze instanceof ZipEntry)
-        {
-            ZipEntry ze2 = (ZipEntry) ze;
-            if (ze2.isAlreadyCompressed())
-            {
-                InputStream is = getCompressedInputStream(ze.getName());
+    public InputStream getInputStream(final java.util.zip.ZipEntry ze) throws IOException, ZipException {
+        if (ze instanceof ZipEntry) {
+            final ZipEntry ze2 = (ZipEntry) ze;
+            if (ze2.isAlreadyCompressed()) {
+                final InputStream is = getCompressedInputStream(ze.getName());
                 return is;
             }
 
@@ -107,31 +95,23 @@ public class ZipFile extends java.util.zip.ZipFile
     }
 
     /**
-     * Returns an input stream for reading the contents of the specified entry, or null if the entry
-     * was not found.
+     * Returns an input stream for reading the contents of the specified entry, or null if the entry was not found.
      */
-    private InputStream getCompressedInputStream(String name)
-    {
-        if (name == null)
-        {
+    private InputStream getCompressedInputStream(final String name) {
+        if (name == null) {
             throw new NullPointerException("name");
         }
         long jzentry = 0;
-        synchronized (this)
-        {
-            try
-            {
+        synchronized (this) {
+            try {
                 ensureOpenMethod.invoke(this, EMPTY_ARGS);
-                long l = jzfileField.getLong(this);
-                jzentry = (Long) getEntryMethod.invoke(this, new Object[] {l, name, false});
-                if (jzentry == 0)
-                {
+                final long l = jzfileField.getLong(this);
+                jzentry = (Long) getEntryMethod.invoke(this, new Object[] { l, name, false });
+                if (jzentry == 0) {
                     return null;
                 }
-                return (InputStream) zipFileInputStreamConstructor.newInstance(new Object[] {this, jzentry});
-            }
-            catch (Exception e)
-            {
+                return (InputStream) zipFileInputStreamConstructor.newInstance(new Object[] { this, jzentry });
+            } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         }

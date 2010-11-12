@@ -58,34 +58,34 @@ import org.apache.tools.ant.types.FileSet;
 
 /**
  * <p>
- *
+ * 
  * Represents a &lt;class&gt; element.
  * <p>
- *
+ * 
  * Buildfile example:
- *
+ * 
  * <pre>
  *   &lt;class name=&quot;com.riggshill.ant.genjar.GenJar&quot;/&gt;
  *   &lt;class name=&quot;com.riggshill.xml.Editor&quot; bean=&quot;yes&quot;/&gt;
  * </pre>
  * <p>
- *
- * When the &lt;class&gt; element is encountered, a new {@link RootClass} is instantiated to represent that
- * element. The class is used hold the class' name and manifest information.
+ * 
+ * When the &lt;class&gt; element is encountered, a new {@link RootClass} is instantiated to represent that element. The
+ * class is used hold the class' name and manifest information.
  * </p>
  * <p>
- *
- * The <code>resolve()</code> method is implemented to determine which classes <i>this</i> class is
- * dependant upon. A list of these classes is held for later inclusion into the jar.
+ * 
+ * The <code>resolve()</code> method is implemented to determine which classes <i>this</i> class is dependant upon. A
+ * list of these classes is held for later inclusion into the jar.
  * </p>
- *
+ * 
  * @author Original Code: <a href="mailto:jake@riggshill.com">John W. Kohler </a>
  * @author Jesse Stockall
  * @created February 23, 2003
  * @version $Revision: 1.3 $ $Date: 2003/02/23 18:25:23 $
  */
-public class RootClass
-{
+public class RootClass {
+
     private boolean singleNameSet = false;
     private final List<String> jarEntries = new LinkedList<String>();
     private final List<FileSet> filesets = new LinkedList<FileSet>();
@@ -93,65 +93,57 @@ public class RootClass
 
     /**
      * Constructor
-     *
+     * 
      * @param project The current ant project.
      */
-    public RootClass(Project proj)
-    {
+    public RootClass(final Project proj) {
         project = proj;
     }
 
     /**
      * Constructor
-     *
+     * 
      * @param project The current ant project.
-     * @param name Classname
+     * @param name class name
      */
-    public RootClass(Project project, String name)
-    {
+    public RootClass(final Project project, final String name) {
         this.project = project;
         setName(name);
     }
 
     /**
      * Returns the list of classes upon which this class is dependent.
-     *
+     * 
      * @return the list of all dependent classes
      */
-    public List<String> getJarEntries()
-    {
+    public List<String> getJarEntries() {
         return jarEntries;
     }
 
     /**
      * Invoked by Ant when the <code>name</code> attribute is encountered.
-     *
+     * 
      * @param name The new name value
      */
-    public void setName(String name)
-    {
-        String classfileName = name.replace('.', '/') + ".class";
+    public void setName(final String name) {
+        final String classfileName = name.replace('.', '/') + ".class";
         this.singleNameSet = true;
         jarEntries.add(classfileName);
     }
 
     /**
      * Generates a list of all classes upon which this class is dependent.
-     *
+     * 
      * @param gj Target
      */
-    public void resolve(GenJar gj)
-    {
+    public void resolve(final GenJar gj) {
         // TODO: We really want to do this sometime before resolve...
-        for (FileSet fileset : filesets)
-        {
-            DirectoryScanner ds = fileset.getDirectoryScanner(project);
-            String[] includedFiles = ds.getIncludedFiles();
+        for (final FileSet fileset : filesets) {
+            final DirectoryScanner ds = fileset.getDirectoryScanner(project);
+            final String[] includedFiles = ds.getIncludedFiles();
 
-            for (String filename : includedFiles)
-            {
-                if (filename.endsWith(".class"))
-                {
+            for (final String filename : includedFiles) {
+                if (filename.endsWith(".class")) {
                     jarEntries.add(filename);
                 }
             }
@@ -163,13 +155,11 @@ public class RootClass
 
     /**
      * Add a fileset to be resolved later.
-     *
+     * 
      * @return A fileset of classes.
      */
-    public void addFileset(FileSet fileset)
-    {
-        if (singleNameSet)
-        {
+    public void addFileset(final FileSet fileset) {
+        if (singleNameSet) {
             throw new BuildException("can't add Fileset - class name already set");
         }
 
@@ -177,8 +167,7 @@ public class RootClass
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return jarEntries.toString();
     }
 }
