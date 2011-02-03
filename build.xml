@@ -10,7 +10,7 @@
     <target name="compile" description="Compile">
         <delete dir="build" failonerror="false"/>
         <mkdir dir="build" />
-        <javac srcdir="java/src" destdir="build" classpath="java/lib/junit.jar:java/lib/log4j.jar:java/lib/args4j.jar" debug="true" includeantruntime="false" />
+        <javac srcdir="java/src" destdir="build" classpath="java/lib/junit.jar:java/lib/log4j.jar" debug="true" includeantruntime="false" />
     </target>
 
 </project>

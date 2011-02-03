@@ -5,6 +5,8 @@ import java.io.StringWriter;
 /**
  * Signals an error in the user input.
  * 
+ * TODO Remove {@link #parser} field. It's not used except in unit tests
+ * 
  * @author Kohsuke Kawaguchi
  */
 public class CmdLineException extends Exception {

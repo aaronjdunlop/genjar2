@@ -130,4 +130,10 @@ public @interface Option {
      *         present, the option will be ignored and its description will be omitted from help information.
      */
     String requiredResource() default "";
+
+    /**
+     * @return Defines a 'group' of options, one of which is required. If specified, the user must provide one 
+     *         (and only one) of the options specifying the same group.
+     */
+    String choiceGroup() default "";
 }

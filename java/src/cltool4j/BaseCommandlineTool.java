@@ -8,10 +8,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
+import java.io.SequenceInputStream;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.jar.Manifest;
 import java.util.logging.Handler;
@@ -52,10 +55,10 @@ public abstract class BaseCommandlineTool {
     @Option(name = "-help", aliases = { "--help", "-?" }, ignoreRequired = true, usage = "Print detailed usage information")
     protected boolean printHelp = false;
 
-    @Option(name = "-readme", aliases = { "--readme" }, hidden=true, ignoreRequired = true, usage = "Print full documentation", requiredResource="META-INF/README.txt")
+    @Option(name = "-readme", aliases = { "--readme" }, hidden = true, ignoreRequired = true, usage = "Print full documentation", requiredResource = "META-INF/README.txt")
     protected boolean printReadme = false;
 
-    @Option(name = "-license", aliases = { "--license" }, hidden=true, ignoreRequired = true, usage = "Print license", requiredResource="META-INF/LICENSE.txt")
+    @Option(name = "-license", aliases = { "--license" }, hidden = true, ignoreRequired = true, usage = "Print license", requiredResource = "META-INF/LICENSE.txt")
     protected boolean printLicense = false;
 
     @Option(name = "-O", metaVar = "option / file", multiValued = true, usage = "Option or option file (file in Java properties format or option as key=value)")
@@ -76,12 +79,14 @@ public abstract class BaseCommandlineTool {
             .getAnnotation(Threadable.class).defaultThreads() != 0 ? getClass().getAnnotation(
             Threadable.class).defaultThreads() : Runtime.getRuntime().availableProcessors()) : 1;
 
-    protected static Logger logger = Logger.getLogger("default");
+    protected final static Logger globalLogger = GlobalLogger.singleton();
 
     @Argument(multiValued = true, metaVar = "files")
     protected String[] inputFiles = new String[0];
 
     protected Exception exception;
+
+    protected String currentInputFile;
 
     /**
      * Default constructor
@@ -113,6 +118,14 @@ public abstract class BaseCommandlineTool {
      * @throws Exception
      */
     protected abstract void run() throws Exception;
+
+    /**
+     * Callback executed when starting to process a new input file
+     * 
+     * @param filename
+     */
+    protected void beginFile(final String filename) {
+    }
 
     /**
      * Parses command-line arguments and executes the tool. This method should be called from within the
@@ -191,10 +204,10 @@ public abstract class BaseCommandlineTool {
             // First, iterate through any property files specified, 'merging' the file contents together (in
             // case of a duplicate key, the last one found wins)
             for (final String o : options) {
-                String[] keyValue = o.split("=");
+                final String[] keyValue = o.split("=");
                 if (keyValue.length != 2) {
                     // Treat it as a property file name
-                    Properties p = new Properties();
+                    final Properties p = new Properties();
                     p.load(new FileReader(o));
                     GlobalConfigProperties.singleton().mergeOver(p);
                 }
@@ -203,7 +216,7 @@ public abstract class BaseCommandlineTool {
             // Now iterate though any key-value pairs specified directly on the command-line; those override
             // properties loaded from files, and again, the last one found wins.
             for (final String o : options) {
-                String[] keyValue = o.split("=");
+                final String[] keyValue = o.split("=");
                 if (keyValue.length == 2) {
                     GlobalConfigProperties.singleton().setProperty(keyValue[0], keyValue[1]);
                 }
@@ -211,14 +224,22 @@ public abstract class BaseCommandlineTool {
 
             // Configure java.util.logging to log to the console, and only the message actually
             // logged, without any header or formatting.
-            logger = Logger.getLogger("cltool");
-            for (final Handler h : logger.getHandlers()) {
-                logger.removeHandler(h);
+            for (final Handler h : globalLogger.getHandlers()) {
+                globalLogger.removeHandler(h);
             }
-            logger.setUseParentHandlers(false);
+            globalLogger.setUseParentHandlers(false);
             final Level l = verbosityLevel.toLevel();
-            logger.addHandler(new SystemOutHandler(l));
-            logger.setLevel(l);
+            globalLogger.addHandler(new SystemOutHandler(l));
+            globalLogger.setLevel(l);
+
+            // If input files were specified on the command-line, check for the first one before running
+            // setup()
+            // If it cannot be found, we'd prefer to fail here than after a potentially expensive setup() call
+            if (inputFiles.length > 0 && inputFiles[0].length() > 0) {
+                if (!new File(inputFiles[0]).exists()) {
+                    throw new CmdLineException(parser, "Unable to find file: " + inputFiles[0]);
+                }
+            }
 
             setup(null);
         } catch (final CmdLineException e) {
@@ -230,15 +251,19 @@ public abstract class BaseCommandlineTool {
         // Handle arguments
         if (inputFiles.length > 0 && inputFiles[0].length() > 0) {
             // Handle one or more input files from the command-line, translating gzipped
-            // files as appropriate.
-            // TODO: Re-route multiple files into a single InputStream so we can execute the tool a
-            // single time.
-            for (final Object filename : inputFiles) {
-                final InputStream is = fileAsInputStream((String) filename);
-                System.setIn(is);
-                run();
-                is.close();
+            // files as appropriate. Re-route multiple files into a single InputStream so we can execute the
+            // tool a single time.
+            // Open all files prior to processing, so we can fail early if one or more files cannot be opened
+            final LinkedList<InputStream> inputList = new LinkedList<InputStream>();
+            for (final String filename : inputFiles) {
+                inputList.add(fileAsInputStream(filename));
             }
+
+            final InputStream is = new MultiInputStream(inputList);
+            System.setIn(is);
+            run();
+            is.close();
+
         } else {
             // Handle input on STDIN
             run();
@@ -311,9 +336,9 @@ public abstract class BaseCommandlineTool {
         }
         return sb.toString();
     }
-    
+
     private void printToStdout(final InputStream input) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(input));
+        final BufferedReader br = new BufferedReader(new InputStreamReader(input));
         for (String line = br.readLine(); line != null; line = br.readLine()) {
             System.out.println(line);
         }
@@ -352,13 +377,6 @@ public abstract class BaseCommandlineTool {
         cal.set(Calendar.MINUTE, 59);
         cal.set(Calendar.SECOND, 59);
         return cal.getTime();
-    }
-
-    /**
-     * @return Logger instance
-     */
-    public static Logger getLogger() {
-        return logger;
     }
 
     /**
@@ -430,6 +448,129 @@ public abstract class BaseCommandlineTool {
         @Override
         public void publish(final LogRecord record) {
             System.out.println(record.getMessage());
+        }
+    }
+
+    /**
+     * Combines multiple {@link InputStream}s into a single stream. Adapted from {@link SequenceInputStream}
+     * to alert {@link BaseCommandlineTool} when beginning a new file.
+     * 
+     * @author aarond
+     * 
+     */
+    private class MultiInputStream extends InputStream {
+        Iterator<? extends InputStream> streamIterator;
+        InputStream currentStream;
+        int currentFileIndex = -1;
+        
+        public MultiInputStream(List<? extends InputStream> inputStreams) {
+            this.streamIterator = inputStreams.iterator();
+            try {
+                next();
+            } catch (IOException ex) {
+                // This should never happen
+                throw new Error("panic");
+            }
+        }
+
+        /**
+         * Proceed on to the next input file
+         */
+        final void next() throws IOException {
+            if (currentStream != null) {
+                currentStream.close();
+            }
+
+            if (streamIterator.hasNext()) {
+                currentStream = streamIterator.next();
+                currentInputFile = inputFiles[++currentFileIndex];
+                beginFile(currentInputFile);
+                if (currentStream == null) {
+                    throw new NullPointerException();
+                }
+            } else {
+                currentStream = null;
+            }
+        }
+
+        /**
+         * @return an estimate of the number of bytes that can be read (or skipped over) from the current
+         *         underlying input stream without blocking or {@code 0} if this input stream has been closed
+         *         by invoking its {@link #close()} method
+         * @exception IOException if an I/O error occurs.
+         */
+        public int available() throws IOException {
+            if (currentStream == null) {
+                return 0; // no way to signal EOF from available()
+            }
+            return currentStream.available();
+        }
+
+        /**
+         * @return the next byte of data, or <code>-1</code> if the end of the stream is reached.
+         * @exception IOException if an I/O error occurs.
+         */
+        public int read() throws IOException {
+            if (currentStream == null) {
+                return -1;
+            }
+            int c = currentStream.read();
+            if (c == -1) {
+                next();
+                return read();
+            }
+            return c;
+        }
+
+        /**
+         * Reads up to <code>len</code> bytes of data from this input stream into an array of bytes. If
+         * <code>len</code> is not zero, the method blocks until at least 1 byte of input is available;
+         * otherwise, no bytes are read and <code>0</code> is returned.
+         * <p>
+         * The <code>read</code> method of <code>SequenceInputStream</code> tries to read the data from the
+         * current substream. If it fails to read any characters because the substream has reached the end of
+         * the stream, it calls the <code>close</code> method of the current substream and begins reading from
+         * the next substream.
+         * 
+         * @param b the buffer into which the data is read.
+         * @param off the start offset in array <code>b</code> at which the data is written.
+         * @param len the maximum number of bytes read.
+         * @return int the number of bytes read.
+         * @exception NullPointerException If <code>b</code> is <code>null</code>.
+         * @exception IndexOutOfBoundsException If <code>off</code> is negative, <code>len</code> is negative,
+         *                or <code>len</code> is greater than <code>b.length - off</code>
+         * @exception IOException if an I/O error occurs.
+         */
+        public int read(byte b[], int off, int len) throws IOException {
+            if (currentStream == null) {
+                return -1;
+            } else if (b == null) {
+                throw new NullPointerException();
+            } else if (off < 0 || len < 0 || len > b.length - off) {
+                throw new IndexOutOfBoundsException();
+            } else if (len == 0) {
+                return 0;
+            }
+
+            int n = currentStream.read(b, off, len);
+            if (n <= 0) {
+                // TODO Insert a line-feed at the end of a file?
+                next();
+                return read(b, off, len);
+            }
+            return n;
+        }
+
+        /**
+         * Closes this input stream and releases any system resources associated with the stream. A closed
+         * <code>SequenceInputStream</code> cannot perform input operations and cannot be reopened.
+         * 
+         * @exception IOException if an I/O error occurs.
+         */
+        public void close() throws IOException {
+            do {
+                next();
+            } while (currentStream != null);
         }
     }
 }

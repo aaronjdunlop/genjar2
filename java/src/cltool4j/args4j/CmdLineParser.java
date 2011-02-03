@@ -12,6 +12,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -38,7 +40,10 @@ public class CmdLineParser {
      * Discovered {@link Setter}s for options.
      */
     private final ArrayList<Setter<?>> optionSetters = new ArrayList<Setter<?>>();
-    private final Map<String, Setter<?>> argumentSettersByArgumentName = new HashMap<String, Setter<?>>();
+
+    private final Map<String, Setter<?>> optionSettersByName = new HashMap<String, Setter<?>>();
+
+    private final Map<String, LinkedList<Setter<?>>> optionSettersByChoiceGroup = new HashMap<String, LinkedList<Setter<?>>>();
 
     /**
      * Discovered {@link Setter}s for arguments.
@@ -132,22 +137,29 @@ public class CmdLineParser {
      * @param o the Option
      */
     public <T> void addOption(final Setter<T> setter, final Option o) {
-        checkOptionNotInMap(o.name());
+        if (optionSettersByName.get(o.name()) != null) {
+            throw new IllegalAnnotationError("Option name <" + o.name() + "> is used more than once");
+        }
         for (final String alias : o.aliases()) {
-            checkOptionNotInMap(alias);
+            if (optionSettersByName.get(alias) != null) {
+                throw new IllegalAnnotationError("Option alias <" + alias + "> is used more than once");
+            }
         }
         optionSetters.add(setter);
-        argumentSettersByArgumentName.put(o.name(), setter);
+        optionSettersByName.put(o.name(), setter);
+
+        if (o.choiceGroup().length() > 0) {
+            LinkedList<Setter<?>> list = optionSettersByChoiceGroup.get(o.choiceGroup());
+            if (list == null) {
+                list = new LinkedList<Setter<?>>();
+                optionSettersByChoiceGroup.put(o.choiceGroup(), list);
+            }
+            list.add(setter);
+        }
     }
 
     public List<Setter<?>> argumentSetters() {
         return argumentSetters;
-    }
-
-    private void checkOptionNotInMap(final String name) throws IllegalAnnotationError {
-        if (argumentSettersByArgumentName.get(name) != null) {
-            throw new IllegalAnnotationError("Option name <" + name + "> is used more than once");
-        }
     }
 
     /**
@@ -164,16 +176,32 @@ public class CmdLineParser {
         final Set<Setter<?>> observedSetters = new HashSet<Setter<?>>();
         int argIndex = 0;
 
+        final Set<String> observedChoiceGroups = new HashSet<String>();
+
         while (parameters.hasNext()) {
             Setter<T> setter;
+
+            // Ignore empty parameters passed by some shell scripts
+            if (parameters.peek().length() == 0) {
+                parameters.next();
+                continue;
+            }
+
             if (parameters.peek().charAt(0) == '-') {
+                // Parse as an option.
                 final String optionName = parameters.next();
-                // parse this as an option.
                 setter = (Setter<T>) findOptionByName(optionName);
 
                 if (setter == null) {
-                    // TODO: insert dynamic setter processing
                     throw new CmdLineException(this, "<" + optionName + "> is not a valid option");
+                }
+
+                if (setter.option.choiceGroup().length() > 0) {
+                    if (observedChoiceGroups.contains(setter.option.choiceGroup())) {
+                        throw new CmdLineException(this, "Only one of "
+                                + choiceGroupSummary(setter.option.choiceGroup()) + " is allowed");
+                    }
+                    observedChoiceGroups.add(setter.option.choiceGroup());
                 }
 
                 try {
@@ -186,6 +214,7 @@ public class CmdLineParser {
                 }
 
             } else {
+                // Parse as an argument
                 if (argIndex >= argumentSetters.size()) {
                     throw new CmdLineException(this, argumentSetters.size() == 0 ? "No arguments allowed"
                             : "Too many arguments");
@@ -220,6 +249,15 @@ public class CmdLineParser {
             for (final Setter<?> setter : optionSetters) {
                 if (setter.option.required() && !observedSetters.contains(setter)) {
                     throw new CmdLineException(this, "Option <" + setter.parameterName() + "> is required");
+                }
+            }
+
+            // make sure that one of each choice group is present
+            for (final Setter<?> setter : optionSetters) {
+                if (setter.option.choiceGroup().length() > 0
+                        && !observedChoiceGroups.contains(setter.option.choiceGroup())) {
+                    throw new CmdLineException(this, "One of "
+                            + choiceGroupSummary(setter.option.choiceGroup()) + " is required");
                 }
             }
 
@@ -259,6 +297,23 @@ public class CmdLineParser {
             }
         }
         return null;
+    }
+
+    private String choiceGroupSummary(final String choiceGroup) {
+        final StringBuilder sb = new StringBuilder();
+        LinkedList<Setter<?>> list = optionSettersByChoiceGroup.get(choiceGroup);
+        for (Iterator<Setter<?>> i = list.iterator(); i.hasNext();) {
+            Setter<?> setter = i.next();
+            if (sb.length() > 0) {
+                if (i.hasNext()) {
+                    sb.append(", ");
+                } else {
+                    sb.append(list.size() == 2 ? " or " : ", or ");
+                }
+            }
+            sb.append("<" + setter.option.name() + ">");
+        }
+        return sb.toString();
     }
 
     /**

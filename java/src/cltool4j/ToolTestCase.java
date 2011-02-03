@@ -11,71 +11,71 @@ import java.io.PrintStream;
 
 /**
  * Provides commonly-used functionality for testing command-line tools.
- *
+ * 
  * @author aarond
  * @since Oct 21, 2009
- *
+ * 
  * @version $Revision$
  */
-public abstract class ToolTestCase
-{
+public abstract class ToolTestCase {
     protected final static String UNIT_TEST_DIR = "unit-test-data/";
 
     /**
-     * Executes the tool with the given arguments, returning the tool output as a String. Output
-     * combines STDOUT and STDERR into a single String.
-     *
+     * Executes the tool with the given arguments, returning the tool output as a String. Output combines
+     * STDOUT and STDERR into a single String.
+     * 
      * @param tool Tool to be tested
      * @param args Command-line
      * @param input Standard Input
      * @return Tool output (STDOUT and STDERR)
      * @throws Exception if something bad happens
      */
-    protected String executeTool(final BaseCommandlineTool tool, final String args, final String input) throws Exception
-    {
+    protected String executeTool(final BaseCommandlineTool tool, final String args, final String input)
+            throws Exception {
         return executeTool(tool, args, new ByteArrayInputStream(input.getBytes()));
     }
 
     /**
-     * Executes the tool with the given arguments, returning the tool output as a String. Output
-     * combines STDOUT and STDERR into a single String.
-     *
+     * Executes the tool with the given arguments, returning the tool output as a String. Output combines
+     * STDOUT and STDERR into a single String.
+     * 
      * @param tool Tool to be tested
      * @param args Command-line
      * @param inputFilename File from unit-test-data directory to use as tool input.
      * @return Tool output (STDOUT and STDERR)
      * @throws Exception if something bad happens
      */
-    protected String executeToolFromFile(final BaseCommandlineTool tool, final String args, final String inputFilename) throws Exception
-    {
+    protected String executeToolFromFile(final BaseCommandlineTool tool, final String args,
+            final String inputFilename) throws Exception {
         return executeTool(tool, args, tool.fileAsInputStream(UNIT_TEST_DIR + inputFilename));
     }
 
     /**
-     * Executes the tool with the given arguments, using the specified InputStream as input. Output
-     * combines STDOUT and STDERR into a single String.
-     *
+     * Executes the tool with the given arguments, using the specified InputStream as input. Output combines
+     * STDOUT and STDERR into a single String.
+     * 
      * @param tool Tool to be tested
      * @param args Command-line
      * @param inputFilename File from unit-test-data directory to use as tool input.
      * @return Tool output (STDOUT and STDERR)
      * @throws Exception if something bad happens
      */
-    protected String executeTool(final BaseCommandlineTool tool, final String args, final InputStream input) throws Exception
-    {
+    protected String executeTool(final BaseCommandlineTool tool, final String args, final InputStream input)
+            throws Exception {
         // Clear out any global properties left over from a previous run
         GlobalConfigProperties.singleton().clear();
-        
+
         // Store STDIN, STDOUT, and STDERR so we can restore them after the test run
         final InputStream systemIn = System.in;
         final PrintStream systemOut = System.out;
         final PrintStream systemErr = System.err;
 
         final ByteArrayOutputStream bos = new ByteArrayOutputStream(8192);
-        try
-        {
+        try {
             // Redirect STDIN, STDOUT, and STDERR for testing
-            System.setIn(input);
+            if (input != null) {
+                System.setIn(input);
+            }
             final PrintStream ps = new PrintStream(bos);
             System.setOut(ps);
             System.setErr(ps);
@@ -83,9 +83,7 @@ public abstract class ToolTestCase
             // Execute the tool
             final String[] argArray = args.length() == 0 ? new String[0] : args.split(" ");
             tool.runInternal(argArray);
-        }
-        finally
-        {
+        } finally {
             // Restore STDIN, STDOUT, STDERR
             System.setIn(systemIn);
             System.setOut(systemOut);
@@ -99,17 +97,16 @@ public abstract class ToolTestCase
 
     /**
      * Returns the contents of the specified file
-     *
+     * 
      * @param filename
      * @return Contents of the specified file
      * @throws IOException
      */
-    protected static String unitTestFileAsString(final String filename) throws IOException
-    {
-        final BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(UNIT_TEST_DIR + filename)));
+    protected static String unitTestFileAsString(final String filename) throws IOException {
+        final BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(UNIT_TEST_DIR
+                + filename)));
         final StringBuilder sb = new StringBuilder(1024);
-        for (String line = br.readLine(); line != null; line = br.readLine())
-        {
+        for (String line = br.readLine(); line != null; line = br.readLine()) {
             sb.append(line);
             sb.append('\n');
         }

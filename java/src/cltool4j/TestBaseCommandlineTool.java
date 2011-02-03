@@ -1,9 +1,16 @@
 package cltool4j;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 
 import org.junit.Test;
 
@@ -12,8 +19,6 @@ import cltool4j.args4j.Argument;
 import cltool4j.args4j.CmdLineParser;
 import cltool4j.args4j.EnumAliasMap;
 import cltool4j.args4j.Option;
-
-import static org.junit.Assert.*;
 
 /**
  * Unit tests for {@link BaseCommandlineTool}.
@@ -303,6 +308,39 @@ public class TestBaseCommandlineTool extends ToolTestCase {
         assertTrue(output.startsWith("\"123456\" is not valid for argument <date>"));
     }
 
+    /**
+     * Verifies that one and only one option from a 'choice group' is required
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testChoiceGroup() throws Exception {
+        final WithChoiceGroups tool = new WithChoiceGroups();
+        executeTool(tool, "-o1 1 -o3 3", "");
+        executeTool(tool, "-o2 2 -o3 3", "");
+
+        String output = executeTool(tool, "-o3 3", "");
+        assertTrue(output.startsWith(""));
+        assertTrue(output.startsWith("One of <-o1> or <-o2> is required"));
+
+        output = executeTool(tool, "-o1 1 -o2 1", "");
+        assertTrue(output.startsWith("Only one of <-o1> or <-o2> is allowed"));
+        
+        output = executeTool(tool, "-o1 1", "");
+        assertTrue(output.startsWith(""));
+        assertTrue(output.startsWith("One of <-o3>, <-o4>, or <-o5> is required"));
+
+        output = executeTool(tool, "-o1 1 -o3 3 -o4 4", "");
+        assertTrue(output.startsWith("Only one of <-o3>, <-o4>, or <-o5> is allowed"));
+    }
+    
+    @Test
+    public void testFileAlerts() throws Exception {
+        final Wc tool = new Wc();
+        String output = executeTool(tool, "unit-test-data/file1.txt unit-test-data/file2.txt", (InputStream) null);
+        assertEquals("unit-test-data/file1.txt : 1\nunit-test-data/file2.txt : 2\n", output);
+    }
+
     @Test
     public void testCalendarOptionHandler() throws Exception {
         final WithCalendarField tool = new WithCalendarField();
@@ -397,7 +435,7 @@ public class TestBaseCommandlineTool extends ToolTestCase {
         @SuppressWarnings("unused")
         @Option(name = "-hidden", hidden = true, usage = "Hidden option")
         public boolean hidden = false;
-
+        
         @Override
         public void setup(final CmdLineParser parser) throws Exception {
             setupFlag = true;
@@ -405,7 +443,7 @@ public class TestBaseCommandlineTool extends ToolTestCase {
 
         @Override
         public void run() throws Exception {
-            logger.fine("MaxThreads: " + maxThreads);
+            globalLogger.fine("MaxThreads: " + maxThreads);
             final StringBuffer sb = new StringBuffer();
             for (final String arg : inputFiles) {
                 sb.append(arg);
@@ -418,6 +456,24 @@ public class TestBaseCommandlineTool extends ToolTestCase {
             final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
             for (String s = br.readLine(); s != null; s = br.readLine()) {
                 System.out.println(s);
+            }
+        }
+    }
+
+    private static class Wc extends BaseCommandlineTool {
+
+        private HashMap<String, Integer> lines = new HashMap<String, Integer>();
+
+        @Override
+        public void run() throws Exception {
+            final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
+                int count = lines.containsKey(currentInputFile) ? lines.get(currentInputFile) : 0;
+                lines.put(currentInputFile, count + 1);
+            }
+            
+            for (String filename : inputFiles) {
+                System.out.println(filename + " : " + lines.get(filename));
             }
         }
     }
@@ -491,6 +547,28 @@ public class TestBaseCommandlineTool extends ToolTestCase {
                 sb.append(' ');
             }
             System.out.println(sb.substring(0, sb.length() - 2));
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static class WithChoiceGroups extends BaseCommandlineTool {
+        @Option(name = "-o1", usage = "o", choiceGroup = "A", metaVar = "value")
+        private String o1;
+
+        @Option(name = "-o2", usage = "o", choiceGroup = "A", metaVar = "value")
+        private String o2;
+
+        @Option(name = "-o3", usage = "o", choiceGroup = "B", metaVar = "value")
+        private String o3;
+
+        @Option(name = "-o4", usage = "o", choiceGroup = "B", metaVar = "value")
+        private String o4;
+
+        @Option(name = "-o5", usage = "o", choiceGroup = "B", metaVar = "value")
+        private String o5;
+
+        @Override
+        protected void run() throws Exception {
         }
     }
 
