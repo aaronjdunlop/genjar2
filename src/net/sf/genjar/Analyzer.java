@@ -168,7 +168,7 @@ public class Analyzer extends AbstractAnalyzer {
                 // eliminate them here.
                 if (className.indexOf('$') >= 0) {
                     final StringBuilder sb = new StringBuilder(className);
-                    while (innerClassPattern.matcher(sb).find()) {
+                    while (innerClassPattern.matcher(sb).find() && sb.indexOf("$") < 0) {
                         sb.setCharAt(sb.lastIndexOf("."), '$');
                     }
                     newClassName = sb.toString();
