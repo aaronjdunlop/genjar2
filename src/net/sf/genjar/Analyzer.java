@@ -157,10 +157,7 @@ public class Analyzer extends AbstractAnalyzer {
             toAnalyze.clear();
 
             // now recover all the dependencies collected and add to the list.
-            final Enumeration<String> depsEnum = dependencyVisitor.getDependencies();
-
-            while (depsEnum.hasMoreElements()) {
-                final String className = depsEnum.nextElement();
+            for (final String className : dependencyVisitor.getDependencies()) {
 
                 String newClassName = className;
                 // DependencyVisitor.getDependencies() returns duplicate inner classes with naming
