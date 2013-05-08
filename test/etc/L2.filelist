@@ -12,5 +12,4 @@ test/build/L2/package1/Class3.class
 test/build/L2/package2/Class4.class
 test/build/L2/typedefs.properties
 test/build/L2/META-INF/MANIFEST.MF
-test/build/L2/META-INF/INDEX.LIST
 test/build/L2/taskdefs.properties

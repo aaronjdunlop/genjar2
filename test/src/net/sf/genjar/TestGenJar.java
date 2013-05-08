@@ -55,8 +55,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 
-import org.apache.tools.ant.Project;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,13 +67,10 @@ import xeus.jcl.JarClassLoader;
  * JUnit tests for {@link GenJar}
  */
 public class TestGenJar extends GenJarTestCase {
-    private Project project;
 
     @Before
     @Override
     protected void setUp() throws Exception {
-        project = new Project();
-        project.setBasedir(".");
         configureProject("test/build.xml");
     }
 
@@ -202,8 +199,17 @@ public class TestGenJar extends GenJarTestCase {
         final String jarManifest = readInputStream(jarFile.getInputStream(jarFile.getJarEntry("META-INF/MANIFEST.MF")));
         jarFile.close();
         final String staticManifest = readInputStream(new FileInputStream(staticManifestFile));
+        assertEquals(staticManifest, cleanJarManifest(jarManifest));
+    }
 
-        assertEquals(staticManifest, jarManifest);
+    private String cleanJarManifest(String manifest) {
+        final Pattern p1 = Pattern.compile("^Created-By: 1.*$", Pattern.MULTILINE);
+        manifest = p1.matcher(manifest).replaceFirst("Created-By: JVM");
+
+        final Pattern p2 = Pattern.compile("^Ant-Version: .*$", Pattern.MULTILINE);
+        manifest = p2.matcher(manifest).replaceFirst("Ant-Version: ANT");
+
+        return manifest;
     }
 
     @Test

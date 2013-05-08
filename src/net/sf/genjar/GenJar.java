@@ -52,8 +52,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -101,23 +99,10 @@ public class GenJar extends BaseGenJarTask {
     private ClassFilter classFilter = null;
     private final List<BaseResolver> runtimeClasspathResolvers = new LinkedList<BaseResolver>();
 
-    /** jar index is JDK 1.3+ only */
-    private boolean index = true;
-
     /** Constructor for the GenJar object */
     public GenJar() {
         setTaskName("GenJar");
         setUpdate(false);
-    }
-
-    /**
-     * Set whether or not to create an index list for classes. This may speed up classloading in some cases.
-     * 
-     * @param flag The new index value
-     */
-    @Override
-    public void setIndex(final boolean flag) {
-        index = flag;
     }
 
     /**
@@ -150,7 +135,7 @@ public class GenJar extends BaseGenJarTask {
     }
 
     /**
-     * Sets the <untimeclasspathref> attribute.
+     * Sets the <runtimeclasspathref> attribute.
      * 
      * @param r The new classpath ref.
      */
@@ -359,10 +344,6 @@ public class GenJar extends BaseGenJarTask {
                 }
             }
 
-            // Add an index list to the jar if it was requested
-            if (index) {
-                addIndexList(zOut, archiveEntries);
-            }
         } catch (final FileNotFoundException fnfe) {
             throw new BuildException("Unable to access jar file (" + getDestFile() + ") msg:", fnfe, getLocation());
         } catch (final IOException ioe) {
@@ -549,62 +530,6 @@ public class GenJar extends BaseGenJarTask {
             deps.add(e.nextElement().replace('.', '/') + ".class");
         }
         return deps;
-    }
-
-    /**
-     * Create the index list to speed up classloading. This is a JDK 1.3+ specific feature and is enabled by default.
-     * See <a href="http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#JAR+Index"> the JAR index specification</a> for
-     * more details.
-     * <p>
-     * 
-     * Based on code from ant's Jar task.
-     * 
-     * @param zOut An opened JarOutPutStream to write to index file to.
-     * @param jarEntries A list of all the entried in the jar.
-     * @throws IOException thrown if there is an error while creating the index and adding it to the zip stream.
-     */
-    private void addIndexList(final ZipOutputStream zOut, final Set<String> jarEntries) throws IOException {
-        zOut.putNextEntry(new org.apache.tools.zip.ZipEntry("META-INF/INDEX.LIST"));
-
-        // encoding must be UTF8 as specified in the specs.
-        final PrintWriter writer = new PrintWriter(new OutputStreamWriter(zOut, "UTF8"));
-
-        // version-info blankline
-        writer.println("JarIndex-Version: 1.0\n");
-        writer.println();
-
-        // header newline
-        writer.println(getDestFile().getName());
-
-        final Set<String> directoriesAlreadyAdded = new HashSet<String>();
-
-        for (final String jarEntry : jarEntries) {
-            String path = jarEntry.replace('\\', '/');
-
-            final int pos = path.lastIndexOf('/');
-            if (pos == -1) {
-                // Class is in root and can be ignored? maybe?
-                continue;
-            }
-
-            // looks like nothing from META-INF should be added
-            // and the check is not case insensitive.
-            // see sun.misc.JarIndex
-            if (path.startsWith("META-INF")) {
-                continue;
-            }
-
-            path = path.substring(0, pos);
-
-            // Only add the path once
-            if (!directoriesAlreadyAdded.contains(path)) {
-                writer.println(path);
-                directoriesAlreadyAdded.add(path);
-            }
-        }
-
-        writer.flush();
-        zOut.closeEntry();
     }
 
     /**

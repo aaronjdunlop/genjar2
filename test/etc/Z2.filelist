@@ -3,6 +3,5 @@ package1/Class2.class
 package1/Class3.class
 package2/Class4.class
 META-INF/MANIFEST.MF
-META-INF/INDEX.LIST
 org/apache/xmlbeans/impl/xpath/saxon/XBeansXPath.class
 org/apache/xmlbeans/impl/xquery/saxon/XBeansXQuery.class

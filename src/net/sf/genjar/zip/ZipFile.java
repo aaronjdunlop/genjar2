@@ -39,7 +39,8 @@ public class ZipFile extends java.util.zip.ZipFile {
     private Constructor<?> zipFileInputStreamConstructor;
     private Field jzfileField;
     private Method ensureOpenMethod;
-    private Method getEntryMethod;
+    private Method getEntryMethod16;
+    private Method getEntryMethod17;
 
     public ZipFile(final File file) throws ZipException, IOException {
         super(file);
@@ -62,9 +63,15 @@ public class ZipFile extends java.util.zip.ZipFile {
             ensureOpenMethod = java.util.zip.ZipFile.class.getDeclaredMethod("ensureOpen", new Class<?>[0]);
             ensureOpenMethod.setAccessible(true);
 
-            getEntryMethod = java.util.zip.ZipFile.class.getDeclaredMethod("getEntry", new Class<?>[] { long.class,
-                    String.class, boolean.class });
-            getEntryMethod.setAccessible(true);
+            try {
+                getEntryMethod16 = java.util.zip.ZipFile.class.getDeclaredMethod("getEntry", new Class<?>[] {
+                        long.class, String.class, boolean.class });
+                getEntryMethod16.setAccessible(true);
+            } catch (final NoSuchMethodException e) {
+                getEntryMethod17 = java.util.zip.ZipFile.class.getDeclaredMethod("getEntry", new Class<?>[] {
+                        long.class, byte[].class, boolean.class });
+                getEntryMethod17.setAccessible(true);
+            }
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
@@ -106,7 +113,11 @@ public class ZipFile extends java.util.zip.ZipFile {
             try {
                 ensureOpenMethod.invoke(this, EMPTY_ARGS);
                 final long l = jzfileField.getLong(this);
-                jzentry = (Long) getEntryMethod.invoke(this, new Object[] { l, name, false });
+                if (getEntryMethod16 != null) {
+                    jzentry = (Long) getEntryMethod16.invoke(this, new Object[] { l, name, false });
+                } else {
+                    jzentry = (Long) getEntryMethod17.invoke(this, new Object[] { l, name.getBytes(), false });
+                }
                 if (jzentry == 0) {
                     return null;
                 }
