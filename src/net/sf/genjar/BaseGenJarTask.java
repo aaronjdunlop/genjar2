@@ -127,7 +127,7 @@ public abstract class BaseGenJarTask extends Jar {
                 return null;
             }
             final File f = new File(baseDir, jarEntry);
-            if (!f.exists()) {
+            if (!f.exists() || f.isDirectory()) {
                 return null;
             }
             return new ZipEntry(jarEntry, new FileInputStream(f), false);
