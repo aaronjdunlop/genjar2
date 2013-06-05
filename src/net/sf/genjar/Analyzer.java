@@ -51,6 +51,7 @@ package net.sf.genjar;
 import java.io.File;
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
@@ -60,7 +61,6 @@ import net.sf.genjar.antutil.DependencyVisitor;
 
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.DescendingVisitor;
-import org.apache.bcel.classfile.JavaClass;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.util.depend.AbstractAnalyzer;
 
@@ -82,6 +82,8 @@ public class Analyzer extends AbstractAnalyzer {
     private final List<String> includes;
     private final Project project;
 
+    private final HashMap<String, String> referenceMap;
+
     final Pattern innerClassPattern = Pattern.compile("[\\.\\$][A-Z][A-Za-z0-9]*\\.[A-Z]");
 
     /**
@@ -89,10 +91,12 @@ public class Analyzer extends AbstractAnalyzer {
      * @param includes List of patterns to explicitly include.
      * @param excludes List of patterns to explicitly exclude.
      */
-    public Analyzer(final Project project, final List<String> includes, final List<String> excludes) {
+    public Analyzer(final Project project, final List<String> includes, final List<String> excludes,
+            final HashMap<String, String> referenceMap) {
         this.includes = includes;
         this.excludes = excludes;
         this.project = project;
+        this.referenceMap = referenceMap;
     }
 
     /**
@@ -112,9 +116,7 @@ public class Analyzer extends AbstractAnalyzer {
         final HashSet<String> toAnalyze = new HashSet<String>();
 
         for (final Enumeration e = getRootClasses(); e.hasMoreElements();) {
-            final String classname = (String) e.nextElement();
-
-            toAnalyze.add(classname);
+            toAnalyze.add((String) e.nextElement());
         }
 
         int count = 0;
@@ -122,33 +124,30 @@ public class Analyzer extends AbstractAnalyzer {
 
         while (toAnalyze.size() != 0 && count++ < maxCount) {
 
-            final DependencyVisitor dependencyVisitor = new DependencyVisitor();
+            final DependencyVisitor dependencyVisitor = new DependencyVisitor(referenceMap);
 
             for (final String classname : toAnalyze) {
+
                 if (!isClassIncluded(classname)) {
                     continue;
                 }
                 dependencies.add(classname);
+
                 try {
                     final File container = getClassContainer(classname);
-
                     if (container == null) {
                         continue;
                     }
                     containers.add(container);
 
-                    ClassParser parser = null;
+                    final ClassParser parser = container.getName().endsWith(".class") ? new ClassParser(
+                            container.getPath()) : new ClassParser(container.getPath(), classname.replace('.', '/')
+                            + ".class");
 
-                    if (container.getName().endsWith(".class")) {
-                        parser = new ClassParser(container.getPath());
-                    } else {
-                        parser = new ClassParser(container.getPath(), classname.replace('.', '/') + ".class");
-                    }
+                    final DescendingVisitor descendingVisitor = new DescendingVisitor(parser.parse(), dependencyVisitor);
+                    dependencyVisitor.setDescendingVistor(descendingVisitor);
+                    descendingVisitor.visit();
 
-                    final JavaClass javaClass = parser.parse();
-                    final DescendingVisitor traverser = new DescendingVisitor(javaClass, dependencyVisitor);
-
-                    traverser.visit();
                 } catch (final IOException ioe) {
                     // ignore
                 }

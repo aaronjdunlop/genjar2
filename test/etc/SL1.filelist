@@ -6,6 +6,5 @@ net/sf/genjar/zip/ZipEntry.java
 net/sf/genjar/GenJar.java
 net/sf/genjar/Analyzer.java
 net/sf/genjar/ClassFilter.java
-net/sf/genjar/RootClassList.java
 net/sf/genjar/zip/ZipFile.java
 genjar.properties

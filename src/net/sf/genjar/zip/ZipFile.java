@@ -30,8 +30,9 @@ import java.util.zip.ZipException;
  * Extends {@link java.util.zip.ZipFile}, making use of {@link ZipEntry} flag for already-compressed entries. Intended
  * to avoid the expense of decompression and recompression when copying a file from one archive to another.
  * 
- * Warning, this involves accessing private fields from {@link org.apache.tools.zip.ZipOutputStream}, so it's somewhat
- * fragile. But it does improve build performance considerably.
+ * Warning, this involves accessing private fields from {@link java.util.zip.ZipFile}, so it's somewhat fragile. But it
+ * does improve build performance considerably. {@link java.util.zip.ZipFile#getEntry()} changed between JDK 1.6 and JDK
+ * 1.7. To support both JDK versions, we look for both variants at initialization time, and use the appropriate one.
  */
 public class ZipFile extends java.util.zip.ZipFile {
     private final static Object[] EMPTY_ARGS = new Object[0];
@@ -39,7 +40,11 @@ public class ZipFile extends java.util.zip.ZipFile {
     private Constructor<?> zipFileInputStreamConstructor;
     private Field jzfileField;
     private Method ensureOpenMethod;
+
+    /** Reference to JDK 1.6's {@link java.util.zip.ZipFile#getEntry()} method */
     private Method getEntryMethod16;
+
+    /** Reference to JDK 1.7's {@link java.util.zip.ZipFile#getEntry()} method */
     private Method getEntryMethod17;
 
     public ZipFile(final File file) throws ZipException, IOException {
@@ -63,6 +68,7 @@ public class ZipFile extends java.util.zip.ZipFile {
             ensureOpenMethod = java.util.zip.ZipFile.class.getDeclaredMethod("ensureOpen", new Class<?>[0]);
             ensureOpenMethod.setAccessible(true);
 
+            // Look for the JDK 1.6 version first, and if that fails, for the JDK 1.7 version
             try {
                 getEntryMethod16 = java.util.zip.ZipFile.class.getDeclaredMethod("getEntry", new Class<?>[] {
                         long.class, String.class, boolean.class });

@@ -59,9 +59,9 @@ import org.apache.tools.ant.types.PatternSet;
 /**
  * Determines whether a class is to be included in the jar.
  * <p>
- *
+ * 
  * Buildfile example:
- *
+ * 
  * <pre>
  * &lt;classfilter&gt;
  *   &lt;include name=&quot;com.foo.&quot; &gt;&lt;br/&gt;
@@ -69,43 +69,39 @@ import org.apache.tools.ant.types.PatternSet;
  * &lt;/classfilter&gt;
  * </pre>
  * <p>
- *
- * As a class' dependency lists are generated, each class is checked against a ClassFilter by
- * calling the <code>include</code> method. This method checks the class name against its list of
- * <i>includes</i> and <i>excludes</i> .
+ * 
+ * As a class' dependency lists are generated, each class is checked against a ClassFilter by calling the
+ * <code>include</code> method. This method checks the class name against its list of <i>includes</i> and
+ * <i>excludes</i> .
  * </p>
  * <p>
- *
- * If the class name starts with any of the strings in the <i>includes</i> list, the class is
- * included in the jar and its dependency lists are checked. If the class name starts with any of
- * the strings in the <i>excludes</i> list, the class is <b>not</b> included in the jar and the
- * dependency analysis halts (for that class).
+ * 
+ * If the class name starts with any of the strings in the <i>includes</i> list, the class is included in the jar and
+ * its dependency lists are checked. If the class name starts with any of the strings in the <i>excludes</i> list, the
+ * class is <b>not</b> included in the jar and the dependency analysis halts (for that class).
  * </p>
  * <p>
- *
- * Note that the following packages are excluded by default:
- * <code>java javax sun sunw com.sun org.omg</code>
+ * 
+ * Note that the following packages are excluded by default: <code>java javax sun sunw com.sun org.omg</code>
  * </p>
- *
+ * 
  * @author Original Code: <a href="mailto:jake@riggshill.com">John W. Kohler </a>
  * @author Jesse Stockall
  * @created February 23, 2003
  * @version $Revision: 1.3 $ $Date: 2003/02/23 18:25:23 $
  */
-public class ClassFilter extends DataType
-{
+public class ClassFilter extends DataType {
     private final PatternSet patternSet = new PatternSet();
-    private final Project project;
+    private final Project proj;
 
     /**
      * Constructs a filter object with the default exclusions
-     *
+     * 
      * @param log Logger for messages.
      * @param proj The ant project.
      */
-    ClassFilter(Project proj)
-    {
-        project = proj;
+    ClassFilter(final Project proj) {
+        this.proj = proj;
 
         // you really do NOT want these included in your jar
         addExcludePattern("java.");
@@ -134,15 +130,13 @@ public class ClassFilter extends DataType
 
     /**
      * Gets the list of exclude patterns.
-     *
+     * 
      * @return The exclude list.
      */
-    public List<String> getExcludeList()
-    {
-        String[] patterns = patternSet.getExcludePatterns(project);
+    public List<String> getExcludeList() {
+        final String[] patterns = patternSet.getExcludePatterns(proj);
 
-        if (patterns != null)
-        {
+        if (patterns != null) {
             return Arrays.asList(patterns);
         }
 
@@ -151,15 +145,13 @@ public class ClassFilter extends DataType
 
     /**
      * Gets the list of include patterns.
-     *
+     * 
      * @return The include list.
      */
-    public List<String> getIncludeList()
-    {
-        String[] patterns = patternSet.getIncludePatterns(project);
+    public List<String> getIncludeList() {
+        final String[] patterns = patternSet.getIncludePatterns(proj);
 
-        if (patterns != null)
-        {
+        if (patterns != null) {
             return Arrays.asList(patterns);
         }
 
@@ -168,13 +160,11 @@ public class ClassFilter extends DataType
 
     /**
      * Adds a name entry on the include list.
-     *
+     * 
      * @return An include pattern set entry.
      */
-    public PatternSet.NameEntry createInclude()
-    {
-        if (isReference())
-        {
+    public PatternSet.NameEntry createInclude() {
+        if (isReference()) {
             throw noChildrenAllowed();
         }
         return patternSet.createInclude();
@@ -182,13 +172,11 @@ public class ClassFilter extends DataType
 
     /**
      * Adds a name entry on the include files list.
-     *
+     * 
      * @return An exclude pattern set entry.
      */
-    public PatternSet.NameEntry createExclude()
-    {
-        if (isReference())
-        {
+    public PatternSet.NameEntry createExclude() {
+        if (isReference()) {
             throw noChildrenAllowed();
         }
         return patternSet.createExclude();
@@ -196,14 +184,13 @@ public class ClassFilter extends DataType
 
     /**
      * Adds an exclusion pattern.
-     *
+     * 
      * @param patt The exclusion pattern to add.
      */
-    private void addExcludePattern(final String patt)
-    {
-        String pattern = patt.replace('/', '.');
+    private void addExcludePattern(final String patt) {
+        final String pattern = patt.replace('/', '.');
 
         patternSet.setExcludes(pattern);
-        project.log("Exclude:" + pattern, Project.MSG_DEBUG);
+        proj.log("Exclude:" + pattern, Project.MSG_DEBUG);
     }
 }

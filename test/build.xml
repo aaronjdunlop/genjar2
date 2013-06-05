@@ -6,7 +6,10 @@
 
     <target name="init">
         <taskdef file="../etc/genjar.properties">
-            <classpath location="../build" />
+            <classpath>
+                <pathelement location="../build" />
+                <fileset dir="../lib" includes="bcel-5.2.jar,jcl.jar"/>
+            </classpath>
         </taskdef>
         <mkdir dir="build/lib" />
     </target>
@@ -211,6 +214,21 @@
         <genjar destfile="${target-jar}">
             <class name="package1.Class3" />
             <classpath location="etc/test3.JAR" />
+        </genjar>
+    </target>
+
+    <!-- Tests a missing referenced class. Note: package2.Class4 is not included in missing_file.jar. 
+         This test case is intended to fail and report the reference chain from package1.Class3 to 
+         package2.Class4. However, the test can't currently be executed from 
+         net.sf.genjar.TestGenJar, because all the referenced classes (including Class4) are 
+         included in JUnit's classpath, so the jar file is created successfully. However, running 
+         it from the command-line results in the expected failure. -->
+    <target name="test.missing.class" depends="init">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class3" />
+            <classpath>
+                <pathelement location="etc/missing_file.jar" />
+            </classpath>
         </genjar>
     </target>
 

@@ -55,6 +55,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -93,6 +94,13 @@ public class GenJar extends BaseGenJarTask {
 
     private final List<FileSet> filesets = new ArrayList<FileSet>();
     private final List<FileSet> groupfilesets = new ArrayList<FileSet>();
+
+    /**
+     * Maps each included class to the class which referenced it. Root classes are inserted with null values, so the
+     * full reference chain for any class can be reconstructed by backtracking through the map to a classname mapped to
+     * <code>null</code>
+     */
+    private HashMap<String, String> referenceMap = new HashMap<String, String>();
 
     private Path classpath = null;
     private Path runtimeClasspath = null;
@@ -323,8 +331,8 @@ public class GenJar extends BaseGenJarTask {
                         continue;
                     }
 
-                    getProject().log("Unable to locate required resource: " + jarEntry, Project.MSG_ERR);
-                    throw new BuildException("Unable to locate required resource [" + jarEntry + ']', getLocation());
+                    throw new BuildException("Unable to locate required resource " + jarEntry + ". Reference path: "
+                            + new ReferenceChain(jarEntry, referenceMap), getLocation());
                 }
                 final InputStream is = ze.getInputStream();
                 getProject().log("Archiving: " + ze.getName(), Project.MSG_VERBOSE);
@@ -505,7 +513,8 @@ public class GenJar extends BaseGenJarTask {
      */
     @SuppressWarnings("unchecked")
     private Set<String> generateClassDependencies(final Collection<String> jarEntries) {
-        final Analyzer ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList());
+        final Analyzer ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList(),
+                referenceMap);
         ga.addClassPath(classpath);
 
         final Set<String> resolvedClasses = new HashSet<String>();

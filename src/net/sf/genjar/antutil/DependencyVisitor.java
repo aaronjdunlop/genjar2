@@ -21,9 +21,12 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import net.sf.genjar.GenJar;
+
 import org.apache.bcel.classfile.ConstantClass;
 import org.apache.bcel.classfile.ConstantNameAndType;
 import org.apache.bcel.classfile.ConstantPool;
+import org.apache.bcel.classfile.DescendingVisitor;
 import org.apache.bcel.classfile.EmptyVisitor;
 import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.JavaClass;
@@ -33,12 +36,27 @@ import org.apache.bcel.classfile.Method;
  * Copy of Ant's DependencyVisitor in genjar namespace so we won't have to have Ant's BCEL jar in classpath
  */
 public class DependencyVisitor extends EmptyVisitor {
+
     /** The collected dependencies */
     private final HashMap<String, String> dependencies = new HashMap<String, String>();
+
+    /** Reference chain, used to backtrack the source of a class reference. See {@link GenJar} */
+    private final HashMap<String, String> referenceMap;
+
+    public DependencyVisitor(final HashMap<String, String> referenceMap) {
+        this.referenceMap = referenceMap;
+    }
+
     /**
      * The current class's constant pool - used to determine class names from class references.
      */
     private ConstantPool constantPool;
+
+    /**
+     * A reference to the {@link DescendingVisitor} that is currently executing, so we can backtrack the reference
+     * chain.
+     */
+    private DescendingVisitor descendingVisitor;
 
     /**
      * Returns the set of classes required by the visited classes
@@ -49,7 +67,7 @@ public class DependencyVisitor extends EmptyVisitor {
         return dependencies.keySet();
     }
 
-    /** Clear the curretn set of collected dependencies. */
+    /** Clear the current set of collected dependencies. */
     public void clearDependencies() {
         dependencies.clear();
     }
@@ -159,6 +177,24 @@ public class DependencyVisitor extends EmptyVisitor {
      * @param classname the class to be added to the list of dependencies.
      */
     void addClass(final String classname) {
+        int level = 0;
+        Object predecessor = descendingVisitor.predecessor();
+        try {
+            for (; predecessor != null && !(predecessor instanceof JavaClass); level++) {
+                predecessor = descendingVisitor.predecessor(level);
+            }
+        } catch (final Exception e) {
+            predecessor = null;
+        }
+
+        if (predecessor != null) {
+            final String referencingClassname = ((JavaClass) predecessor).getClassName();
+
+            if (!referenceMap.containsKey(classname) && !classname.equals(referencingClassname)) {
+                referenceMap.put(classname, referencingClassname);
+            }
+        }
+
         dependencies.put(classname, classname);
     }
 
@@ -185,5 +221,9 @@ public class DependencyVisitor extends EmptyVisitor {
      */
     private void addSlashClass(final String classname) {
         addClass(classname.replace('/', '.'));
+    }
+
+    public void setDescendingVistor(final DescendingVisitor descendingVisitor) {
+        this.descendingVisitor = descendingVisitor;
     }
 }
