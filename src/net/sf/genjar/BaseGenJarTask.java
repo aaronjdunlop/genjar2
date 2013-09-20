@@ -130,7 +130,7 @@ public abstract class BaseGenJarTask extends Jar {
             if (!f.exists() || f.isDirectory()) {
                 return null;
             }
-            return new ZipEntry(jarEntry, new FileInputStream(f), false);
+            return new ZipEntry(jarEntry, new FileInputStream(f));
         }
 
         @Override

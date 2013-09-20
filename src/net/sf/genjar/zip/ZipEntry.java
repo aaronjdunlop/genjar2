@@ -31,10 +31,10 @@ public class ZipEntry extends org.apache.tools.zip.ZipEntry {
     private java.util.zip.ZipEntry createdFrom;
     private InputStream inputStream;
 
-    public ZipEntry(final String name, final InputStream is, final boolean alreadyCompressed) {
+    public ZipEntry(final String name, final InputStream is) {
         super(name);
         this.inputStream = is;
-        this.alreadyCompressed = alreadyCompressed;
+        this.alreadyCompressed = false;
     }
 
     public ZipEntry(final java.util.zip.ZipEntry entry, final boolean alreadyCompressed) throws ZipException {
@@ -45,14 +45,6 @@ public class ZipEntry extends org.apache.tools.zip.ZipEntry {
 
     public boolean isAlreadyCompressed() {
         return alreadyCompressed;
-    }
-
-    public void setAlreadyCompressed(final boolean alreadyCompressed) {
-        this.alreadyCompressed = alreadyCompressed;
-    }
-
-    public java.util.zip.ZipEntry getCreatedFrom() {
-        return createdFrom;
     }
 
     public InputStream getInputStream() {
