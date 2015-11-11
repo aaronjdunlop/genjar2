@@ -224,8 +224,26 @@ public class TestGenJar extends GenJarTestCase {
     }
 
     @Test
+    public void testClasspathresources1() throws IOException {
+        executeTarget("test.classpathresources.1");
+        checkJarfileContents("CR1");
+    }
+
+    @Test
+    public void testClasspathresources2() throws IOException {
+        executeTarget("test.classpathresources.2");
+        checkJarfileContents("CR2");
+    }
+
+    @Test
     public void testGenjarJar() {
         executeTarget("test.genjar.jar");
+    }
+
+    @Test
+    public void testSrcjar1() throws IOException {
+        executeTarget("test.srcjar.1");
+        checkJarfileContents("SJ1");
     }
 
     @Test

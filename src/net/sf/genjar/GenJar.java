@@ -53,6 +53,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -69,6 +70,7 @@ import org.apache.tools.ant.FileScanner;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.types.FileSet;
 import org.apache.tools.ant.types.Path;
+import org.apache.tools.ant.types.PatternSet;
 import org.apache.tools.ant.types.Reference;
 import org.apache.tools.ant.types.Resource;
 import org.apache.tools.ant.types.ResourceCollection;
@@ -80,6 +82,8 @@ import org.apache.tools.ant.util.FileUtils;
  * <p>
  * 
  * This class is instantiated when Ant encounters the &lt;genjar&gt; element.
+ * 
+ * TODO Add support for a new directive to list includes from CLASSPATH
  * 
  * @author John W. Kohler
  * @author Jesse Stockall
@@ -105,6 +109,8 @@ public class GenJar extends BaseGenJarTask {
     private Path classpath = null;
     private Path runtimeClasspath = null;
     private ClassFilter classFilter = null;
+    private PatternSet classpathResources = null;
+
     private final List<BaseResolver> runtimeClasspathResolvers = new LinkedList<BaseResolver>();
 
     /** Constructor for the GenJar object */
@@ -218,6 +224,16 @@ public class GenJar extends BaseGenJarTask {
     }
 
     /**
+     * Builds a &lt;classpathresources&gt; element.
+     * 
+     * @param resources {@link PatternSet} Classpath Resource
+     * @return A &lt;classpathresources&gt; element.
+     */
+    public void addClasspathresources(final PatternSet resources) {
+        this.classpathResources = resources;
+    }
+
+    /**
      * main execute for genjar
      * <ol>
      * <li>setup logger
@@ -298,6 +314,13 @@ public class GenJar extends BaseGenJarTask {
                     getProject().log("Duplicate (ignored): " + entry, Project.MSG_VERBOSE);
                 }
             }
+        }
+
+        //
+        // Add resources from CLASSPATH matching <classpathresources>
+        //
+        if (classpathResources != null) {
+
         }
 
         if (zipFile.exists()) {
@@ -511,10 +534,19 @@ public class GenJar extends BaseGenJarTask {
      * @param it Iterator of all the classes to use when building the dependencies.
      * @return A List of all the class dependencies.
      */
-    @SuppressWarnings("unchecked")
     private Set<String> generateClassDependencies(final Collection<String> jarEntries) {
-        final Analyzer ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList(),
-                referenceMap);
+        final Analyzer ga;
+        if (classpathResources != null) {
+            // Includes is required; excludes is optional
+            final List<String> resourceIncludes = Arrays.asList(classpathResources.getIncludePatterns(getProject()));
+            final String[] tmp = classpathResources.getExcludePatterns(getProject());
+            final List<String> resourceExcludes = tmp != null ? Arrays.asList(tmp) : null;
+            ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList(),
+                    resourceIncludes, resourceExcludes, referenceMap);
+        } else {
+            ga = new Analyzer(getProject(), classFilter.getIncludeList(), classFilter.getExcludeList(), null, null,
+                    referenceMap);
+        }
         ga.addClassPath(classpath);
 
         final Set<String> resolvedClasses = new HashSet<String>();
@@ -538,6 +570,7 @@ public class GenJar extends BaseGenJarTask {
             // Now convert back to / and add .class
             deps.add(e.nextElement().replace('.', '/') + ".class");
         }
+        deps.addAll(ga.findMatchingClasspathResources());
         return deps;
     }
 

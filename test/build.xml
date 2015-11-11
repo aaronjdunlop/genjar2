@@ -248,6 +248,28 @@
         <delete file="build/Lock/jar2.jar" />
     </target>
 
+    <!-- Tests <classpathresources> element - including files from CLASSPATH based on patterns -->
+    <target name="test.classpathresources.1" depends="test.genjar.jar">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class3" />
+            <classpath>
+                <pathelement location="etc/test1.jar" />
+            </classpath>
+            <classpathresources includes="**/GENJAR.SF,typedefs.properties" />
+        </genjar>
+    </target>
+    
+    <!-- Tests <classpathresources> element with both include and exclude patterns -->
+    <target name="test.classpathresources.2" depends="test.genjar.jar">
+        <genjar destfile="${target-jar}">
+            <class name="package1.Class3" />
+            <classpath>
+                <pathelement location="etc/test1.jar" />
+            </classpath>
+            <classpathresources includes="META-INF/*,**/*defs.properties" excludes="*/GENJAR.DSA,typedefs.*" />
+        </genjar>
+    </target>
+    
     <!-- Ensures that genjar can build itself -->
     <target name="test.genjar.jar" depends="init">
         <genjar destfile="build/genjar.jar">

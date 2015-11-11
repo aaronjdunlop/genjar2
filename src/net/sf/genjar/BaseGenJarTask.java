@@ -100,9 +100,23 @@ public abstract class BaseGenJarTask extends Jar {
          * 
          * @param entry Filename to resolve
          * @return ZipEntry opened to the specified file, or null if not found
+         * 
          * @exception IOException if any errors are encountered
          */
         protected abstract ZipEntry resolve(String entry) throws IOException;
+
+        /**
+         * Searches the path for files matching the specified patterns - i.e., files matching
+         * <code>includesPattern</code> and <em>not</em> matching <code>excludesPattern</code>
+         * 
+         * @param includesPattern Include pattern
+         * @param excludesPattern Exclude pattern
+         * @return ZipEntry opened to the specified file, or null if not found
+         * 
+         * @exception IOException if any errors are encountered
+         */
+        // protected abstract List<ZipEntry> resolvePatterns(final String[] includesPattern, final String[]
+        // excludesPattern);
 
         /**
          * Closes any resources opened by the resolver.

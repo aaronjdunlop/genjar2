@@ -81,7 +81,7 @@
     -->
     <target name="build.java" depends="build.setup">
         <depend srcdir="${src.dir}" destdir="${build.classes.dir}" closure="yes" />
-        <javac srcdir="${src.dir}" destdir="${build.classes.dir}" debug="${debug.flag}" target="1.5" classpathref="classpath" includeantruntime="true" />
+        <javac srcdir="${src.dir}" destdir="${build.classes.dir}" debug="${debug.flag}" target="1.7" classpathref="classpath" includeantruntime="true" />
     </target>
 
     <target name="build.jar" depends="build.java">

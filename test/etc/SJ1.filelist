@@ -1,0 +1,14 @@
+META-INF/MANIFEST.MF
+net/sf/genjar/ReferenceChain.java
+net/sf/genjar/RootClassList.java
+net/sf/genjar/Analyzer.java
+net/sf/genjar/BaseGenJarTask.java
+META-INF/MANIFEST.MF
+net/sf/genjar/zip/ZipOutputStream.java
+net/sf/genjar/zip/ZipFile.java
+net/sf/genjar/RootClass.java
+net/sf/genjar/ClassFilter.java
+net/sf/genjar/antutil/DependencyVisitor.java
+net/sf/genjar/GenJar.java
+genjar.properties
+net/sf/genjar/zip/ZipEntry.java

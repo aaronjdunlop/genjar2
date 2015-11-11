@@ -50,12 +50,15 @@ package net.sf.genjar;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import net.sf.genjar.antutil.DependencyVisitor;
@@ -64,6 +67,7 @@ import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.DescendingVisitor;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.types.Path;
+import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.apache.tools.ant.util.depend.AbstractAnalyzer;
 
 /**
@@ -80,8 +84,10 @@ import org.apache.tools.ant.util.depend.AbstractAnalyzer;
  */
 public class Analyzer extends AbstractAnalyzer {
 
-    private final List<String> excludes;
-    private final List<String> includes;
+    private final List<String> classExcludes;
+    private final List<String> classIncludes;
+    private final List<String> resourceExcludes;
+    private final List<String> resourceIncludes;
     private final Project project;
 
     private final HashMap<String, String> referenceMap;
@@ -92,13 +98,20 @@ public class Analyzer extends AbstractAnalyzer {
 
     /**
      * @param project The current Ant build project
-     * @param includes List of patterns to explicitly include.
-     * @param excludes List of patterns to explicitly exclude.
+     * @param classIncludes List of class patterns to explicitly include.
+     * @param classExcludes List of class patterns to explicitly exclude.
+     * @param resourceIncludes List of classpath resource patterns to explicitly include.
+     * @param resourceExcludes List of classpath resource patterns to explicitly exclude.
+     * @param referenceMap
      */
-    public Analyzer(final Project project, final List<String> includes, final List<String> excludes,
+    public Analyzer(final Project project, final List<String> classIncludes, final List<String> classExcludes,
+            final List<String> resourceIncludes, final List<String> resourceExcludes,
             final HashMap<String, String> referenceMap) {
-        this.includes = includes;
-        this.excludes = excludes;
+
+        this.classIncludes = classIncludes;
+        this.classExcludes = classExcludes;
+        this.resourceIncludes = resourceIncludes;
+        this.resourceExcludes = resourceExcludes;
         this.project = project;
         this.referenceMap = referenceMap;
     }
@@ -228,30 +241,30 @@ public class Analyzer extends AbstractAnalyzer {
     public File getClassContainer(final String classname) throws IOException {
         final String classLocation = classname.replace('.', '/') + ".class";
         // we look through the classpath elements. If the element is a dir
-        // we look for the file. IF it is a zip, we look for the zip entry
+        // we look for the file. If it is a zip, we look for the zip entry
         // TODO ??? Iterate over the classpath backwards, mapping from directory contents and jar contents to the jars
-        // they're present in
-        return getResourceContainer(classLocation, classpathList);
+        // they're present in - we could cache this mapping and avoid repeatedly opening directories and zip files
+        return getClassContainer(classLocation, classpathList);
     }
 
     /**
      * Get the file that contains the resource
      * 
-     * Copied from AbstractAnalyzer.java
+     * Copied from AbstractAnalyzer.java, getResourceContainer()
      * 
-     * @param resourceLocation the name of the required resource.
+     * @param resourceLocation the name of the required class.
      * @param paths the paths which will be searched for the resource.
      * @return the file instance, zip or class, containing the class or null if the class could not be found.
      * @exception IOException if the files in the given paths cannot be read.
      */
-    private File getResourceContainer(final String resourceLocation, final String[] paths) throws IOException {
+    private File getClassContainer(final String classLocation, final String[] paths) throws IOException {
         for (int i = 0; i < paths.length; ++i) {
             final File element = new File(paths[i]);
             if (!element.exists()) {
                 continue;
             }
             if (element.isDirectory()) {
-                final File resource = new File(element, resourceLocation);
+                final File resource = new File(element, classLocation);
                 if (resource.exists()) {
                     return resource;
                 }
@@ -260,7 +273,7 @@ public class Analyzer extends AbstractAnalyzer {
                 ZipFile zipFile = null;
                 try {
                     zipFile = new ZipFile(element);
-                    if (zipFile.getEntry(resourceLocation) != null) {
+                    if (zipFile.getEntry(classLocation) != null) {
                         return element;
                     }
                 } finally {
@@ -273,13 +286,98 @@ public class Analyzer extends AbstractAnalyzer {
         return null;
     }
 
+    /**
+     * Returns resources in {@link #classpathList} matching {@link #resourceIncludes} and {@link #resourceExcludes}
+     * 
+     * @return resources in {@link #classpathList} matching {@link #resourceIncludes} and {@link #resourceExcludes}
+     */
+    public Set<String> findMatchingClasspathResources() {
+
+        final Set<String> matchingResources = new HashSet<String>();
+
+        if (resourceIncludes == null) {
+            return matchingResources;
+        }
+
+        for (int i = 0; i < classpathList.length; ++i) {
+            final File element = new File(classpathList[i]);
+            if (!element.exists()) {
+                continue;
+            }
+
+            if (element.isDirectory()) {
+                for (final String filename : walkDirectory(element)) {
+                    if (isResourceIncluded(filename)) {
+                        matchingResources.add(filename);
+                    }
+                }
+            } else {
+                // must be a zip of some sort
+                ZipFile zipFile = null;
+                try {
+                    zipFile = new ZipFile(element);
+                    for (final Enumeration<? extends ZipEntry> e = zipFile.entries(); e.hasMoreElements();) {
+                        final ZipEntry entry = e.nextElement();
+                        if (isResourceIncluded(entry.getName())) {
+                            matchingResources.add(entry.getName());
+                        }
+                    }
+                } catch (final IOException ignore) {
+                    // Skip this zip file
+
+                } finally {
+                    if (zipFile != null) {
+                        try {
+                            zipFile.close();
+                        } catch (final IOException ignore) {
+                            // Skip closing
+                        }
+                    }
+                }
+            }
+        }
+        return matchingResources;
+    }
+
+    /**
+     * Recursively walks a directory structure and returns the names of all contained files
+     * 
+     * @param rootDirectory Directory
+     * @return Contained files
+     */
+    private List<String> walkDirectory(final File rootDirectory) {
+        final ArrayList<String> files = new ArrayList<String>();
+        walkDirectory(rootDirectory, files);
+        return files;
+    }
+
+    /**
+     * Recursively walks a directory structure, adding the names of all contained files to {@link #files}
+     * 
+     * @param rootDirectory Directory
+     * @param files List of files
+     */
+    private void walkDirectory(final File rootDirectory, final List<String> files) {
+        final File[] list = rootDirectory.listFiles();
+        if (list == null) {
+            return;
+        }
+        for (final File f : list) {
+            if (f.isDirectory()) {
+                walkDirectory(f, files);
+            } else {
+                files.add(f.getAbsolutePath());
+            }
+        }
+    }
+
     private boolean isClassIncluded(final String classname) {
 
         // normalize class name to dotted notation for logging
         final String normalizedClassname = classname.replace('/', '.');
 
         // if the class is explicitly included, then say ok....
-        for (final String ip : includes) {
+        for (final String ip : classIncludes) {
             if (normalizedClassname.startsWith(ip)) {
                 project.log("Explicit Include (" + ip + "):" + classname, Project.MSG_DEBUG);
                 return true;
@@ -287,7 +385,7 @@ public class Analyzer extends AbstractAnalyzer {
         }
 
         // no explicit inclusion - check for an exclusion
-        for (final String ip : excludes) {
+        for (final String ip : classExcludes) {
             if (normalizedClassname.startsWith(ip)) {
                 project.log("Explicit Exclude (" + ip + "):" + classname, Project.MSG_DEBUG);
                 return false;
@@ -297,6 +395,28 @@ public class Analyzer extends AbstractAnalyzer {
         // nothing explicit - include by default
         project.log("Implicit Include:" + normalizedClassname, Project.MSG_DEBUG);
         return true;
+    }
+
+    private boolean isResourceIncluded(final String resource) {
+
+        // Match include patterns
+        for (final String includePattern : resourceIncludes) {
+            if (SelectorUtils.matchPath(includePattern, resource)) {
+
+                // Exclude patterns override includes
+                if (resourceExcludes != null) {
+                    for (final String excludePattern : resourceExcludes) {
+                        if (SelectorUtils.matchPath(excludePattern, resource)) {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 // vi:set ts=4 sw=4:
