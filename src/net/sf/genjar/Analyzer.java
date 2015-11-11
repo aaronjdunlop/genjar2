@@ -56,12 +56,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
 import java.util.regex.Pattern;
+import java.util.zip.ZipFile;
 
 import net.sf.genjar.antutil.DependencyVisitor;
 
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.DescendingVisitor;
 import org.apache.tools.ant.Project;
+import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.util.depend.AbstractAnalyzer;
 
 /**
@@ -85,6 +87,8 @@ public class Analyzer extends AbstractAnalyzer {
     private final HashMap<String, String> referenceMap;
 
     final Pattern innerClassPattern = Pattern.compile("[\\.\\$][A-Z][A-Za-z0-9]*\\.[A-Z]");
+
+    private String[] classpathList;
 
     /**
      * @param project The current Ant build project
@@ -131,6 +135,10 @@ public class Analyzer extends AbstractAnalyzer {
                 if (!isClassIncluded(classname)) {
                     continue;
                 }
+                if (dependencies.contains(classname)) {
+                    continue;
+                }
+
                 dependencies.add(classname);
 
                 try {
@@ -191,6 +199,78 @@ public class Analyzer extends AbstractAnalyzer {
     @Override
     protected boolean supportsFileDependencies() {
         return true;
+    }
+
+    /**
+     * Add a classpath to the classpath being used by the analyzer. The classpath contains the binary classfiles for the
+     * classes being analyzed The elements may either be the directories or jar files.Not all analyzers will use this
+     * information.
+     * 
+     * Overrides the superclass implementation to populate {@link #classpathList}
+     * 
+     * @param classPath the Path instance specifying the classpath elements
+     */
+    @Override
+    public void addClassPath(final Path classPath) {
+        super.addClassPath(classPath);
+        this.classpathList = classPath.list();
+    }
+
+    /**
+     * Get the file that contains the class definition. Overrides the superclass implementation to only list the
+     * classpath once
+     * 
+     * @param classname the name of the required class
+     * @return the file instance, zip or class, containing the class or null if the class could not be found.
+     * @exception IOException if the files in the classpath cannot be read.
+     */
+    @Override
+    public File getClassContainer(final String classname) throws IOException {
+        final String classLocation = classname.replace('.', '/') + ".class";
+        // we look through the classpath elements. If the element is a dir
+        // we look for the file. IF it is a zip, we look for the zip entry
+        // TODO ??? Iterate over the classpath backwards, mapping from directory contents and jar contents to the jars
+        // they're present in
+        return getResourceContainer(classLocation, classpathList);
+    }
+
+    /**
+     * Get the file that contains the resource
+     * 
+     * Copied from AbstractAnalyzer.java
+     * 
+     * @param resourceLocation the name of the required resource.
+     * @param paths the paths which will be searched for the resource.
+     * @return the file instance, zip or class, containing the class or null if the class could not be found.
+     * @exception IOException if the files in the given paths cannot be read.
+     */
+    private File getResourceContainer(final String resourceLocation, final String[] paths) throws IOException {
+        for (int i = 0; i < paths.length; ++i) {
+            final File element = new File(paths[i]);
+            if (!element.exists()) {
+                continue;
+            }
+            if (element.isDirectory()) {
+                final File resource = new File(element, resourceLocation);
+                if (resource.exists()) {
+                    return resource;
+                }
+            } else {
+                // must be a zip of some sort
+                ZipFile zipFile = null;
+                try {
+                    zipFile = new ZipFile(element);
+                    if (zipFile.getEntry(resourceLocation) != null) {
+                        return element;
+                    }
+                } finally {
+                    if (zipFile != null) {
+                        zipFile.close();
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private boolean isClassIncluded(final String classname) {

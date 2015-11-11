@@ -13,6 +13,7 @@ import net.sf.genjar.zip.ZipEntry;
 import net.sf.genjar.zip.ZipFile;
 
 import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Jar;
 import org.apache.tools.ant.types.FileSet;
 import org.apache.tools.ant.types.Path;
@@ -53,6 +54,7 @@ public abstract class BaseGenJarTask extends Jar {
             if (!f.exists()) {
                 continue;
             }
+            final long t0 = System.currentTimeMillis();
 
             final String suffix = classpathEntry.substring(classpathEntry.length() - 4);
             if (suffix.equalsIgnoreCase(".jar") || suffix.equalsIgnoreCase(".zip")) {
@@ -68,6 +70,9 @@ public abstract class BaseGenJarTask extends Jar {
             } else {
                 throw new BuildException(f.getName() + " is not a valid classpath component", getLocation());
             }
+            getProject().log(
+                    String.format("Path Resolver for %s initialized in %d ms", classpathEntry,
+                            System.currentTimeMillis() - t0), Project.MSG_VERBOSE);
         }
         return tempResolvers;
     }

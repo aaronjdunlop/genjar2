@@ -111,6 +111,7 @@ public class ClassFilter extends DataType {
         addExcludePattern("com.sun.");
         addExcludePattern("org.omg.");
         addExcludePattern("com.ibm.jvm.");
+        addExcludePattern("org.w3c.dom.");
 
         // in some circumstances, these names will be included
         // in a class' constant pool as classes, so they're
